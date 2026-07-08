@@ -26,6 +26,8 @@ create table public.workspaces (
   timezone text not null default 'Europe/Berlin',
   rollover_hour smallint not null default 6 check (rollover_hour between 0 and 23),
   discreet_mode boolean not null default false,
+  ui_density text not null default 'compact' check (ui_density in ('compact', 'comfortable', 'large')),
+  accent_color text not null default '#17181a',
   created_by uuid not null references public.profiles(id),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()

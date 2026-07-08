@@ -848,3 +848,139 @@ button:disabled { cursor: not-allowed; opacity: .42; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
 }
+
+/* Workspace appearance preferences */
+.app-shell {
+  --theme-accent: #17181a;
+}
+
+.primary-button {
+  border-color: var(--theme-accent);
+  background: var(--theme-accent);
+}
+
+.primary-button:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--theme-accent), black 16%);
+}
+
+.mini-progress i,
+.large-progress i {
+  background: var(--theme-accent);
+}
+
+button:focus-visible,
+input:focus-visible,
+textarea:focus-visible,
+select:focus-visible {
+  outline-color: color-mix(in srgb, var(--theme-accent), white 25%);
+}
+
+.density-selector {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  padding: 4px;
+  border-radius: 10px;
+  background: var(--surface-subtle);
+  border: 1px solid var(--line);
+}
+
+.density-selector button {
+  min-height: 32px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text-soft);
+  cursor: pointer;
+  font-size: 10px;
+  font-weight: 620;
+}
+
+.density-selector button.active {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow-sm);
+}
+
+.accent-selector {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+}
+
+.accent-selector button {
+  --swatch: #17181a;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 3px solid var(--surface);
+  border-radius: 50%;
+  background: var(--swatch);
+  box-shadow: 0 0 0 1px var(--line-strong);
+  cursor: pointer;
+}
+
+.accent-selector button.active {
+  box-shadow: 0 0 0 2px var(--text);
+}
+
+/* Medium interface */
+.app-shell.density-comfortable {
+  grid-template-columns: 220px minmax(0, 1fr);
+}
+
+.app-shell.density-comfortable .sidebar { width: 220px; }
+.app-shell.density-comfortable .topbar { height: 70px; padding-inline: 27px; }
+.app-shell.density-comfortable .page-content { padding: 24px 27px 38px; }
+.app-shell.density-comfortable .page-heading h2 { font-size: clamp(21px, 2.2vw, 27px); }
+.app-shell.density-comfortable .notepad-column { padding: 15px; }
+.app-shell.density-comfortable .quick-add { height: 38px; font-size: 11px; }
+.app-shell.density-comfortable .task-list { gap: 9px; }
+.app-shell.density-comfortable .task-card { padding: 15px 15px 12px; }
+.app-shell.density-comfortable .task-copy h4 { font-size: 13.5px; }
+.app-shell.density-comfortable .task-copy p { font-size: 11px; }
+.app-shell.density-comfortable .task-meta,
+.app-shell.density-comfortable .carry-note { font-size: 9.5px; }
+.app-shell.density-comfortable .thread-button { font-size: 10px; }
+
+/* Large interface */
+.app-shell.density-large {
+  grid-template-columns: 240px minmax(0, 1fr);
+}
+
+.app-shell.density-large .sidebar { width: 240px; padding: 22px 17px; }
+.app-shell.density-large .brand-block h1 { max-width: 158px; font-size: 14px; }
+.app-shell.density-large .nav-item { min-height: 44px; font-size: 13px; }
+.app-shell.density-large .topbar { height: 78px; padding-inline: 32px; }
+.app-shell.density-large .page-content { padding: 28px 32px 44px; }
+.app-shell.density-large .page-heading { min-height: 68px; margin-bottom: 18px; }
+.app-shell.density-large .page-heading h2 { font-size: clamp(24px, 2.4vw, 31px); }
+.app-shell.density-large .page-heading p { font-size: 12px; }
+.app-shell.density-large .split-board { gap: 16px; }
+.app-shell.density-large .notepad-column { padding: 18px; }
+.app-shell.density-large .column-header { min-height: 50px; }
+.app-shell.density-large .partner-title h3 { font-size: 15px; }
+.app-shell.density-large .quick-add { height: 42px; font-size: 12px; }
+.app-shell.density-large .task-list { gap: 11px; }
+.app-shell.density-large .task-card { padding: 18px 18px 14px; border-radius: 13px; }
+.app-shell.density-large .task-card-top { grid-template-columns: 28px minmax(0, 1fr) auto; gap: 11px; }
+.app-shell.density-large .complete-control { width: 23px; height: 23px; }
+.app-shell.density-large .task-copy h4 { font-size: 15px; line-height: 1.5; }
+.app-shell.density-large .task-copy p { font-size: 12px; }
+.app-shell.density-large .status-pill,
+.app-shell.density-large .priority-pill { font-size: 8.5px; }
+.app-shell.density-large .task-meta,
+.app-shell.density-large .carry-note { margin-left: 39px; font-size: 10.5px; }
+.app-shell.density-large .thread-button { margin-left: 39px; font-size: 11px; }
+
+@media (max-width: 860px) {
+  .app-shell.density-comfortable,
+  .app-shell.density-large {
+    grid-template-columns: 1fr;
+  }
+
+  .app-shell.density-comfortable .sidebar,
+  .app-shell.density-large .sidebar {
+    width: 100%;
+  }
+}

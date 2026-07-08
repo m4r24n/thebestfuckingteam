@@ -22,7 +22,7 @@ import type {
   UserProfile,
 } from "@/lib/types";
 
-const STORAGE_KEY = "tbft-demo-v1";
+const STORAGE_KEY = "tbft-workspace-v3";
 const DEFAULT_TIMEZONE = "Europe/Berlin";
 
 type Section = "today" | "projects" | "calendar" | "activity" | "settings";
@@ -54,139 +54,25 @@ function makeId(prefix: string): string {
 function makeInitialData(): AppData {
   const timezone = DEFAULT_TIMEZONE;
   const rolloverHour = 6;
-  const boardDate = getBoardDate(timezone, rolloverHour);
-  const yesterday = addDays(boardDate, -1);
-  const tomorrow = addDays(boardDate, 1);
-  const now = new Date().toISOString();
 
   const users: UserProfile[] = [
-    { id: "marzan", name: "Marzan", initials: "MI", accent: "#d9ff57" },
-    { id: "shamina", name: "Shamina", initials: "SI", accent: "#ff9fbd" },
-  ];
-
-  const projects: Project[] = [
-    {
-      id: "project_wedding",
-      name: "Wedding & Life Planning",
-      description: "Documents, travel, ceremony, and everything we are building together.",
-      ownerId: "joint",
-      targetDate: addDays(boardDate, 60),
-      view: "flow",
-      nodes: [
-        { id: "node_documents", title: "Documents", position: 0 },
-        { id: "node_travel", title: "Travel", position: 1 },
-        { id: "node_ceremony", title: "Ceremony", position: 2 },
-      ],
-      createdAt: now,
-    },
-    {
-      id: "project_career",
-      name: "Career Launch",
-      description: "Applications, portfolio projects, interview practice, and German.",
-      ownerId: "joint",
-      targetDate: addDays(boardDate, 90),
-      view: "terminal",
-      nodes: [
-        { id: "node_portfolio", title: "Portfolio", position: 0 },
-        { id: "node_applications", title: "Applications", position: 1 },
-        { id: "node_interviews", title: "Interviews", position: 2 },
-      ],
-      createdAt: now,
-    },
-  ];
-
-  const tasks: Task[] = [
-    {
-      id: "task_1",
-      title: "Review this week’s priorities together",
-      description: "Keep the list realistic and decide what matters most.",
-      ownerId: "marzan",
-      creatorId: "marzan",
-      originalDate: boardDate,
-      priority: "high",
-      projectId: "project_career",
-      projectNodeId: "node_applications",
-      createdAt: now,
-      updatedAt: now,
-    },
-    {
-      id: "task_2",
-      title: "Prepare the travel document checklist",
-      ownerId: "shamina",
-      creatorId: "marzan",
-      originalDate: boardDate,
-      deadline: "18:00",
-      priority: "normal",
-      projectId: "project_wedding",
-      projectNodeId: "node_documents",
-      createdAt: now,
-      updatedAt: now,
-    },
-    {
-      id: "task_3",
-      title: "Finish the portfolio project description",
-      ownerId: "marzan",
-      creatorId: "shamina",
-      originalDate: yesterday,
-      priority: "normal",
-      projectId: "project_career",
-      projectNodeId: "node_portfolio",
-      createdAt: now,
-      updatedAt: now,
-    },
-    {
-      id: "task_4",
-      title: "Book a focused planning call",
-      ownerId: "shamina",
-      creatorId: "shamina",
-      originalDate: tomorrow,
-      priority: "low",
-      projectId: "project_wedding",
-      projectNodeId: "node_ceremony",
-      createdAt: now,
-      updatedAt: now,
-    },
-    {
-      id: "task_5",
-      title: "Send one job application",
-      ownerId: "marzan",
-      creatorId: "marzan",
-      originalDate: boardDate,
-      priority: "normal",
-      projectId: "project_career",
-      projectNodeId: "node_applications",
-      completedAt: now,
-      createdAt: now,
-      updatedAt: now,
-    },
+    { id: "marzan", name: "Marzan", initials: "MI", accent: "#d9dde2" },
+    { id: "shamina", name: "Shamina", initials: "SI", accent: "#d9dde2" },
   ];
 
   return {
     users,
-    tasks,
-    projects,
-    messages: [
-      {
-        id: "message_1",
-        taskId: "task_2",
-        authorId: "marzan",
-        body: "I added this under Documents. Please add anything I missed in this thread.",
-        createdAt: now,
-      },
-    ],
-    activities: [
-      {
-        id: "activity_1",
-        actorId: "marzan",
-        text: "created the shared workspace.",
-        createdAt: now,
-      },
-    ],
+    tasks: [],
+    projects: [],
+    messages: [],
+    activities: [],
     settings: {
       timezone,
       rolloverHour,
       discreetMode: false,
       workspaceName: "The Best Fucking Team",
+      uiDensity: "compact",
+      accentColor: "#17181a",
     },
   };
 }
@@ -263,10 +149,18 @@ export default function TBFTApp() {
     if (saved) {
       try {
         const parsed = JSON.parse(saved) as AppData;
-        setData(parsed);
-        const date = getBoardDate(parsed.settings.timezone, parsed.settings.rolloverHour);
+        const migrated: AppData = {
+          ...parsed,
+          settings: {
+            ...parsed.settings,
+            uiDensity: parsed.settings.uiDensity ?? "compact",
+            accentColor: parsed.settings.accentColor ?? "#17181a",
+          },
+        };
+        setData(migrated);
+        const date = getBoardDate(migrated.settings.timezone, migrated.settings.rolloverHour);
         setSelectedDate(date);
-        setSelectedProjectId(parsed.projects[0]?.id ?? null);
+        setSelectedProjectId(migrated.projects[0]?.id ?? null);
         return;
       } catch {
         window.localStorage.removeItem(STORAGE_KEY);
@@ -497,11 +391,11 @@ export default function TBFTApp() {
     } : current);
   };
 
-  const resetDemo = () => {
+  const clearWorkspace = () => {
     setConfirmDialog({
-      title: "Reset this workspace?",
-      message: "All local tasks, projects, notes, and activity will be replaced with the original demo data.",
-      confirmLabel: "Reset workspace",
+      title: "Clear this workspace?",
+      message: "All local tasks, projects, notes, and activity will be removed from this browser.",
+      confirmLabel: "Clear workspace",
       tone: "danger",
       onConfirm: () => {
         const initial = makeInitialData();
@@ -510,7 +404,7 @@ export default function TBFTApp() {
         setSelectedDate(getBoardDate(initial.settings.timezone, initial.settings.rolloverHour));
         setSelectedProjectId(initial.projects[0]?.id ?? null);
         setSection("today");
-        setToast("Workspace reset");
+        setToast("Workspace cleared");
       },
     });
   };
@@ -524,7 +418,7 @@ export default function TBFTApp() {
   ];
 
   return (
-    <div className="app-shell">
+    <div className={`app-shell density-${data.settings.uiDensity}`} style={{ "--theme-accent": data.settings.accentColor } as React.CSSProperties}>
       <aside className="sidebar">
         <div className="brand-block">
           <div className="brand-mark">TB</div>
@@ -556,7 +450,7 @@ export default function TBFTApp() {
         </div>
 
         <div className="demo-badge">
-          <span className="live-dot" /> Local demo mode
+          <span className="live-dot" /> Local preview
         </div>
       </aside>
 
@@ -646,7 +540,7 @@ export default function TBFTApp() {
           {section === "activity" && <ActivityPage data={data} />}
 
           {section === "settings" && (
-            <SettingsPage data={data} setData={setData} resetDemo={resetDemo} />
+            <SettingsPage data={data} setData={setData} clearWorkspace={clearWorkspace} />
           )}
         </div>
       </main>
@@ -1273,7 +1167,7 @@ function ActivityPage({ data }: { data: AppData }) {
   );
 }
 
-function SettingsPage({ data, setData, resetDemo }: { data: AppData; setData: React.Dispatch<React.SetStateAction<AppData | null>>; resetDemo: () => void }) {
+function SettingsPage({ data, setData, clearWorkspace }: { data: AppData; setData: React.Dispatch<React.SetStateAction<AppData | null>>; clearWorkspace: () => void }) {
   return (
     <>
       <PageHeading
@@ -1301,6 +1195,40 @@ function SettingsPage({ data, setData, resetDemo }: { data: AppData; setData: Re
           </label>
         </div>
         <div className="settings-card">
+          <span className="eyebrow">APPEARANCE</span>
+          <label>
+            Interface size
+            <div className="density-selector" role="group" aria-label="Interface size">
+              {(["compact", "comfortable", "large"] as const).map((density) => (
+                <button
+                  key={density}
+                  type="button"
+                  className={data.settings.uiDensity === density ? "active" : ""}
+                  onClick={() => setData((current) => current ? { ...current, settings: { ...current.settings, uiDensity: density } } : current)}
+                >
+                  {density === "compact" ? "Small" : density === "comfortable" ? "Medium" : "Large"}
+                </button>
+              ))}
+            </div>
+          </label>
+          <label>
+            Accent color
+            <div className="accent-selector" role="group" aria-label="Accent color">
+              {["#17181a", "#365f8d", "#3f6f5a", "#6a526f", "#8a5846", "#356d72"].map((color) => (
+                <button
+                  key={color}
+                  type="button"
+                  className={data.settings.accentColor === color ? "active" : ""}
+                  style={{ "--swatch": color } as React.CSSProperties}
+                  aria-label={`Use accent ${color}`}
+                  onClick={() => setData((current) => current ? { ...current, settings: { ...current.settings, accentColor: color } } : current)}
+                />
+              ))}
+            </div>
+          </label>
+          <p className="settings-note">The accent remains subtle and is used only for primary actions, progress, and focus.</p>
+        </div>
+        <div className="settings-card">
           <span className="eyebrow">DAILY SYSTEM</span>
           <label>
             Workspace timezone
@@ -1326,10 +1254,10 @@ function SettingsPage({ data, setData, resetDemo }: { data: AppData; setData: Re
           <p className="settings-note">From midnight until rollover, unfinished tasks illuminate red. After rollover they appear yellow as carried tasks.</p>
         </div>
         <div className="settings-card danger-card">
-          <span className="eyebrow">DEMO DATA</span>
-          <h3>Start with a clean notebook</h3>
+          <span className="eyebrow">LOCAL DATA</span>
+          <h3>Clear this notebook</h3>
           <p>This removes tasks, threads, projects, and local activity from this browser.</p>
-          <button className="danger-button" onClick={resetDemo}>Reset demo workspace</button>
+          <button className="danger-button" onClick={clearWorkspace}>Clear local workspace</button>
         </div>
       </section>
     </>

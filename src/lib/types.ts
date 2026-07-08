@@ -59,6 +59,8 @@ export type AppSettings = {
   rolloverHour: number;
   discreetMode: boolean;
   workspaceName: string;
+  uiDensity: "compact" | "comfortable" | "large";
+  accentColor: string;
 };
 
 export type AppData = {
