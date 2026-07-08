@@ -1413,3 +1413,49 @@ select:focus-visible {
   .workspace-type-picker { grid-template-columns: 1fr; }
 }
 .field-hint { color: var(--text-faint); font-size: .68rem; font-weight: 520; line-height: 1.35; }
+
+/* v0.5.2 — readable action controls on mellow themes */
+.primary-button {
+  border-color: color-mix(in srgb, var(--theme-accent), #55584f 38%);
+  background: color-mix(in srgb, var(--theme-accent), var(--surface-raised) 44%);
+  color: var(--text);
+  text-shadow: none;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.48), 0 .2rem .7rem rgba(61,52,37,.07);
+}
+
+.primary-button:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--theme-accent), var(--surface-raised) 31%);
+  color: var(--text);
+}
+
+.danger-button {
+  border-color: color-mix(in srgb, var(--danger), var(--line-strong) 42%);
+  background: color-mix(in srgb, var(--danger-soft), var(--surface-raised) 24%);
+  color: var(--text);
+  text-shadow: none;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.55), 0 .2rem .7rem rgba(92,55,50,.05);
+}
+
+.danger-button:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--danger-soft), var(--danger) 15%);
+  color: var(--text);
+}
+
+.danger-button.subtle-danger {
+  background: color-mix(in srgb, var(--danger-soft), transparent 58%);
+  color: var(--text);
+}
+
+.danger-button.subtle-danger:hover:not(:disabled) {
+  background: var(--danger-soft);
+  color: var(--text);
+}
+
+.calendar-grid > button.selected {
+  background: color-mix(in srgb, var(--theme-accent), var(--surface-raised) 38%);
+  color: var(--text);
+}
+
+.state-completed .complete-control {
+  color: var(--text);
+}
