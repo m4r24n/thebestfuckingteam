@@ -39,6 +39,14 @@ type TaskFormState = {
   projectNodeId: string;
 };
 
+type ConfirmDialogState = {
+  title: string;
+  message: string;
+  confirmLabel: string;
+  tone?: "default" | "danger";
+  onConfirm: () => void;
+};
+
 function makeId(prefix: string): string {
   return `${prefix}_${crypto.randomUUID()}`;
 }
@@ -245,6 +253,8 @@ export default function TBFTApp() {
   const [taskModal, setTaskModal] = useState<{ task?: Task; ownerId: string; date: string; projectId?: string; projectNodeId?: string } | null>(null);
   const [threadTaskId, setThreadTaskId] = useState<string | null>(null);
   const [projectModalOpen, setProjectModalOpen] = useState(false);
+  const [phaseProjectId, setPhaseProjectId] = useState<string | null>(null);
+  const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState | null>(null);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
@@ -352,16 +362,34 @@ export default function TBFTApp() {
     setTaskModal(null);
   };
 
-  const completeTask = (task: Task, viewingDate: string) => {
+  const toggleTaskCompletion = (task: Task, viewingDate: string) => {
     if (task.ownerId !== activeUserId) {
-      setToast("Only the task owner can complete it");
+      setToast("Only the task owner can change completion");
       return;
     }
+
+    if (task.completedAt) {
+      const timestamp = new Date().toISOString();
+      setData((current) => {
+        if (!current) return current;
+        return {
+          ...current,
+          tasks: current.tasks.map((item) =>
+            item.id === task.id
+              ? { ...item, completedAt: undefined, updatedAt: timestamp }
+              : item,
+          ),
+        };
+      });
+      recordActivity(activeUserId, `marked “${task.title}” incomplete.`);
+      setToast("Task returned to the list");
+      return;
+    }
+
     if (dateCompare(viewingDate, boardDate) > 0) {
       setToast("A future task cannot be completed early");
       return;
     }
-    if (task.completedAt) return;
 
     const timestamp = new Date().toISOString();
     setData((current) => {
@@ -375,7 +403,7 @@ export default function TBFTApp() {
     });
     const lateDays = Math.max(0, daysBetween(task.originalDate, boardDate));
     recordActivity(activeUserId, `completed “${task.title}”${lateDays ? ` ${lateDays} day${lateDays === 1 ? "" : "s"} late` : ""}.`);
-    setToast("Hell yes — completed");
+    setToast("Task completed");
   };
 
   const deleteTask = (task: Task) => {
@@ -383,21 +411,26 @@ export default function TBFTApp() {
       setToast("Only the task owner can delete it");
       return;
     }
-    const confirmed = window.confirm(`Delete “${task.title}”?`);
-    if (!confirmed) return;
-
-    const timestamp = new Date().toISOString();
-    setData((current) => {
-      if (!current) return current;
-      return {
-        ...current,
-        tasks: current.tasks.map((item) =>
-          item.id === task.id ? { ...item, deletedAt: timestamp, updatedAt: timestamp } : item,
-        ),
-      };
+    setConfirmDialog({
+      title: "Delete task?",
+      message: `“${task.title}” will be removed from the dashboard and project history.`,
+      confirmLabel: "Delete task",
+      tone: "danger",
+      onConfirm: () => {
+        const timestamp = new Date().toISOString();
+        setData((current) => {
+          if (!current) return current;
+          return {
+            ...current,
+            tasks: current.tasks.map((item) =>
+              item.id === task.id ? { ...item, deletedAt: timestamp, updatedAt: timestamp } : item,
+            ),
+          };
+        });
+        recordActivity(activeUserId, `deleted “${task.title}”.`);
+        setToast("Task removed");
+      },
     });
-    recordActivity(activeUserId, `deleted “${task.title}”.`);
-    setToast("Task removed");
   };
 
   const addMessage = (taskId: string, body: string) => {
@@ -432,15 +465,15 @@ export default function TBFTApp() {
     setToast("Project created");
   };
 
-  const addProjectNode = (project: Project) => {
-    const title = window.prompt("Name this project phase or section:");
-    if (!title?.trim()) return;
+  const addProjectNode = (projectId: string, title: string) => {
+    const project = data.projects.find((item) => item.id === projectId);
+    if (!project || !title.trim()) return;
     setData((current) => {
       if (!current) return current;
       return {
         ...current,
         projects: current.projects.map((item) =>
-          item.id === project.id
+          item.id === projectId
             ? {
                 ...item,
                 nodes: [
@@ -453,6 +486,8 @@ export default function TBFTApp() {
       };
     });
     recordActivity(activeUserId, `added “${title.trim()}” to project “${project.name}”.`);
+    setPhaseProjectId(null);
+    setToast("Phase added");
   };
 
   const updateProjectView = (projectId: string, view: Project["view"]) => {
@@ -463,14 +498,21 @@ export default function TBFTApp() {
   };
 
   const resetDemo = () => {
-    if (!window.confirm("Reset all demo data and start again?")) return;
-    const initial = makeInitialData();
-    setData(initial);
-    setActiveUserId("marzan");
-    setSelectedDate(getBoardDate(initial.settings.timezone, initial.settings.rolloverHour));
-    setSelectedProjectId(initial.projects[0]?.id ?? null);
-    setSection("today");
-    setToast("Demo reset");
+    setConfirmDialog({
+      title: "Reset this workspace?",
+      message: "All local tasks, projects, notes, and activity will be replaced with the original demo data.",
+      confirmLabel: "Reset workspace",
+      tone: "danger",
+      onConfirm: () => {
+        const initial = makeInitialData();
+        setData(initial);
+        setActiveUserId("marzan");
+        setSelectedDate(getBoardDate(initial.settings.timezone, initial.settings.rolloverHour));
+        setSelectedProjectId(initial.projects[0]?.id ?? null);
+        setSection("today");
+        setToast("Workspace reset");
+      },
+    });
   };
 
   const navItems: { id: Section; label: string; icon: string }[] = [
@@ -566,7 +608,7 @@ export default function TBFTApp() {
               now={now}
               activeUserId={activeUserId}
               onAdd={(ownerId) => setTaskModal({ ownerId, date: boardDate })}
-              onComplete={completeTask}
+              onComplete={toggleTaskCompletion}
               onDelete={deleteTask}
               onEdit={(task) => setTaskModal({ task, ownerId: task.ownerId, date: task.originalDate })}
               onThread={setThreadTaskId}
@@ -579,7 +621,7 @@ export default function TBFTApp() {
               selectedProjectId={selectedProjectId}
               onSelectProject={setSelectedProjectId}
               onCreateProject={() => setProjectModalOpen(true)}
-              onAddNode={addProjectNode}
+              onAddNode={(project) => setPhaseProjectId(project.id)}
               onUpdateView={updateProjectView}
               onOpenTask={(task) => setTaskModal({ task, ownerId: task.ownerId, date: task.originalDate })}
               onCreateTask={(projectId, projectNodeId) => setTaskModal({ ownerId: activeUserId, date: boardDate, projectId, projectNodeId })}
@@ -594,7 +636,7 @@ export default function TBFTApp() {
               onSelectDate={setSelectedDate}
               activeUserId={activeUserId}
               onAdd={(ownerId) => setTaskModal({ ownerId, date: selectedDate })}
-              onComplete={completeTask}
+              onComplete={toggleTaskCompletion}
               onDelete={deleteTask}
               onEdit={(task) => setTaskModal({ task, ownerId: task.ownerId, date: task.originalDate })}
               onThread={setThreadTaskId}
@@ -636,6 +678,25 @@ export default function TBFTApp() {
 
       {projectModalOpen && (
         <ProjectEditor onClose={() => setProjectModalOpen(false)} onSave={createProject} />
+      )}
+
+      {phaseProjectId && (
+        <PhaseEditor
+          project={data.projects.find((project) => project.id === phaseProjectId)}
+          onClose={() => setPhaseProjectId(null)}
+          onSave={(title) => addProjectNode(phaseProjectId, title)}
+        />
+      )}
+
+      {confirmDialog && (
+        <ConfirmDialog
+          {...confirmDialog}
+          onClose={() => setConfirmDialog(null)}
+          onConfirm={() => {
+            confirmDialog.onConfirm();
+            setConfirmDialog(null);
+          }}
+        />
       )}
 
       {toast && <div className="toast">{toast}</div>}
@@ -829,7 +890,7 @@ function TaskCard({
   const messages = data.messages.filter((message) => message.taskId === task.id).length;
   const isOwner = task.ownerId === activeUserId;
   const boardDate = getBoardDate(data.settings.timezone, data.settings.rolloverHour, now);
-  const canComplete = isOwner && !task.completedAt && dateCompare(viewingDate, boardDate) <= 0;
+  const canToggleCompletion = isOwner && (Boolean(task.completedAt) || dateCompare(viewingDate, boardDate) <= 0);
   const carriedDays = Math.max(0, daysBetween(task.originalDate, viewingDate));
 
   return (
@@ -838,9 +899,17 @@ function TaskCard({
         <button
           className="complete-control"
           onClick={onComplete}
-          disabled={!canComplete}
-          aria-label={task.completedAt ? "Completed" : "Mark complete"}
-          title={!isOwner ? `Only ${owner.name} can complete this task` : state === "future" ? "Cannot complete before the date" : "Mark complete"}
+          disabled={!canToggleCompletion}
+          aria-label={task.completedAt ? "Mark task incomplete" : "Mark task complete"}
+          title={
+            !isOwner
+              ? `Only ${owner.name} can change completion`
+              : task.completedAt
+                ? "Mark incomplete"
+                : state === "future"
+                  ? "Cannot complete before the date"
+                  : "Mark complete"
+          }
         >
           {task.completedAt ? "✓" : ""}
         </button>
@@ -853,8 +922,8 @@ function TaskCard({
           {task.description && <p>{task.description}</p>}
         </div>
         <div className="task-menu">
-          <button onClick={onEdit} title="Edit task">✎</button>
-          <button onClick={onDelete} disabled={!isOwner} title={isOwner ? "Delete task" : "Only the owner can delete"}>×</button>
+          <button onClick={onEdit} title="Edit task" aria-label="Edit task">Edit</button>
+          <button onClick={onDelete} disabled={!isOwner} title={isOwner ? "Delete task" : "Only the owner can delete"} aria-label="Delete task">Delete</button>
         </div>
       </div>
 
@@ -863,15 +932,15 @@ function TaskCard({
       )}
 
       <div className="task-meta">
-        {task.deadline && <span>◷ {task.deadline}</span>}
-        {project && <span>◇ {project.name}{node ? ` / ${node.title}` : ""}</span>}
+        {task.deadline && <span>{task.deadline}</span>}
+        {project && <span>{project.name}{node ? ` / ${node.title}` : ""}</span>}
         {task.creatorId !== task.ownerId && <span>Added by {creator.name}</span>}
         {task.completedAt && <span>Completed {formatClock(task.completedAt)}</span>}
       </div>
 
       <button className="thread-button" onClick={onThread}>
-        <span>☵ Open thread</span>
-        <strong>{messages} {messages === 1 ? "note" : "notes"}</strong>
+        <span>Notes</span>
+        <strong>{messages}</strong>
       </button>
     </article>
   );
@@ -1315,10 +1384,11 @@ function TaskEditor({
       <form className="modal-card task-editor" onSubmit={submit} onMouseDown={(event) => event.stopPropagation()}>
         <div className="modal-header">
           <div>
-            <span className="eyebrow">{task ? "EDIT TASK" : `CREATING AS ${activeUser.name.toUpperCase()}`}</span>
-            <h3>{task ? "Refine the task" : "Add something worth finishing"}</h3>
+            <span className="eyebrow">{task ? "TASK DETAILS" : `CREATING AS ${activeUser.name.toUpperCase()}`}</span>
+            <h3>{task ? "Edit task" : "Create a task"}</h3>
+            <p>Keep the title clear. Additional details are optional.</p>
           </div>
-          <button type="button" onClick={onClose}>×</button>
+          <button type="button" className="icon-button" onClick={onClose} aria-label="Close dialog">×</button>
         </div>
 
         <label className="full-field">
@@ -1441,12 +1511,86 @@ function ProjectEditor({ onClose, onSave }: { onClose: () => void; onSave: (name
   return (
     <div className="modal-backdrop" onMouseDown={onClose}>
       <form className="modal-card project-editor" onSubmit={(event) => { event.preventDefault(); if (name.trim()) onSave(name, description, targetDate); }} onMouseDown={(event) => event.stopPropagation()}>
-        <div className="modal-header"><div><span className="eyebrow">NEW PROJECT</span><h3>Build the bigger picture</h3></div><button type="button" onClick={onClose}>×</button></div>
+        <div className="modal-header"><div><span className="eyebrow">NEW PROJECT</span><h3>Create a project</h3><p>Group related tasks into a shared plan.</p></div><button type="button" className="icon-button" onClick={onClose} aria-label="Close dialog">×</button></div>
         <label>Project name<input autoFocus value={name} onChange={(event) => setName(event.target.value)} placeholder="e.g. Wedding planning" /></label>
         <label>Description<textarea value={description} onChange={(event) => setDescription(event.target.value)} placeholder="What does success look like?" /></label>
         <label>Target date<input type="date" value={targetDate} onChange={(event) => setTargetDate(event.target.value)} /></label>
         <div className="modal-actions"><button type="button" className="secondary-button" onClick={onClose}>Cancel</button><button className="primary-button" disabled={!name.trim()}>Create project</button></div>
       </form>
+    </div>
+  );
+}
+
+function PhaseEditor({ project, onClose, onSave }: { project?: Project; onClose: () => void; onSave: (title: string) => void }) {
+  const [title, setTitle] = useState("");
+
+  return (
+    <div className="modal-backdrop" onMouseDown={onClose}>
+      <form
+        className="modal-card compact-dialog"
+        onSubmit={(event) => {
+          event.preventDefault();
+          if (title.trim()) onSave(title.trim());
+        }}
+        onMouseDown={(event) => event.stopPropagation()}
+      >
+        <div className="modal-header">
+          <div>
+            <span className="eyebrow">NEW PHASE</span>
+            <h3>Add a project phase</h3>
+            <p>{project ? `Organize the next part of ${project.name}.` : "Create a new section for this project."}</p>
+          </div>
+          <button type="button" className="icon-button" onClick={onClose} aria-label="Close dialog">×</button>
+        </div>
+        <label className="full-field">
+          Phase name
+          <input
+            autoFocus
+            value={title}
+            onChange={(event) => setTitle(event.target.value)}
+            placeholder="e.g. Documents, Research, Launch"
+          />
+        </label>
+        <div className="modal-actions">
+          <button type="button" className="secondary-button" onClick={onClose}>Cancel</button>
+          <button className="primary-button" disabled={!title.trim()}>Add phase</button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+function ConfirmDialog({
+  title,
+  message,
+  confirmLabel,
+  tone = "default",
+  onClose,
+  onConfirm,
+}: {
+  title: string;
+  message: string;
+  confirmLabel: string;
+  tone?: "default" | "danger";
+  onClose: () => void;
+  onConfirm: () => void;
+}) {
+  return (
+    <div className="modal-backdrop" onMouseDown={onClose}>
+      <section className="modal-card confirm-dialog" onMouseDown={(event) => event.stopPropagation()}>
+        <div className="modal-header">
+          <div>
+            <span className="eyebrow">PLEASE CONFIRM</span>
+            <h3>{title}</h3>
+            <p>{message}</p>
+          </div>
+          <button type="button" className="icon-button" onClick={onClose} aria-label="Close dialog">×</button>
+        </div>
+        <div className="modal-actions">
+          <button type="button" className="secondary-button" onClick={onClose}>Cancel</button>
+          <button type="button" className={tone === "danger" ? "danger-button" : "primary-button"} onClick={onConfirm}>{confirmLabel}</button>
+        </div>
+      </section>
     </div>
   );
 }
