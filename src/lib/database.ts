@@ -103,15 +103,13 @@ export async function loadWorkspaceData(
   const [projectsResult, tasksResult, activitiesResult] = await Promise.all([
     supabase
       .from("projects")
-      .select("id, name, description, owner_user_id, is_joint, target_date, preferred_view, created_at")
+      .select("id, name, description, owner_user_id, is_joint, target_date, preferred_view, created_at, deleted_at")
       .eq("workspace_id", workspaceId)
-      .is("deleted_at", null)
       .order("created_at", { ascending: true }),
     supabase
       .from("tasks")
       .select("id, title, description, owner_user_id, created_by, original_date, deadline, priority, project_id, project_node_id, completed_at, deleted_at, created_at, updated_at")
       .eq("workspace_id", workspaceId)
-      .is("deleted_at", null)
       .order("created_at", { ascending: true }),
     supabase
       .from("activity_log")
@@ -159,6 +157,7 @@ export async function loadWorkspaceData(
     view: row.preferred_view as Project["view"],
     nodes: nodesByProject.get(row.id as string) ?? [],
     createdAt: row.created_at as string,
+    deletedAt: (row.deleted_at as string | null) ?? undefined,
   }));
 
   const rawTasks = tasksResult.data ?? [];

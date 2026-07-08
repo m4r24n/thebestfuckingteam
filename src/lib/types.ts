@@ -37,6 +37,7 @@ export type Project = {
   view: "flow" | "folders" | "terminal";
   nodes: ProjectNode[];
   createdAt: string;
+  deletedAt?: string;
 };
 
 export type Task = {

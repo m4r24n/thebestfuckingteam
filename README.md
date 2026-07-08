@@ -1,8 +1,8 @@
-# The Best Fucking Team — v0.5
+# The Best Fucking Team — v0.6
 
 A private shared daily planner and project workspace for solo users and couples.
 
-## What v0.5 adds
+## What v0.6 includes
 
 - Supabase email/password registration and sign-in
 - Email confirmation and password-reset flows
@@ -17,10 +17,21 @@ A private shared daily planner and project workspace for solo users and couples.
 - Downloadable JSON backup
 - Read-only last-synced browser cache for temporary offline access
 - A Current Day countdown timer and operational-day progress bar
+- Editable project name, description, and target date
+- Project action menu with Edit and Move to archive
+- Recoverable Archive page for projects and tasks
+- Project phases and task links are preserved while a project is archived
+- Owner-only task restoration, enforced by the existing database trigger
 
 The countdown is 0% at the workspace rollover time, normally 6:00 AM. It fills toward 100% at midnight. Between midnight and rollover it remains at 100%, switches to the grace-period countdown, and glows red.
 
 ## Before uploading this version
+
+### Database note
+
+If v0.5 is already working, **no new SQL is required for v0.6**. The existing `deleted_at` fields and Row Level Security policies support archiving and restoration.
+
+For a brand-new installation, follow the database step below.
 
 ### 1. Install the database in Supabase
 
@@ -113,8 +124,11 @@ Only the assigned task owner may:
 
 - Mark the task complete
 - Mark it incomplete again
-- Delete it
+- Move it to the archive
+- Restore it from the archive
 - Transfer ownership
+
+Both workspace members may edit, archive, and restore shared projects.
 
 These restrictions are enforced in PostgreSQL as well as in the interface.
 
@@ -140,6 +154,13 @@ src/lib/types.ts               Application types
 supabase/setup-v0.5.sql        Upgrade/new-project database installer
 supabase/schema.sql            Current complete schema
 ```
+
+## Archive behavior
+
+- Moving a project to the archive hides it from Projects but preserves its phases.
+- Connected active tasks remain on their scheduled dashboards. Their project connection becomes visible again when the project is restored.
+- Moving a task to the archive preserves its notes, completion state, project link, and history.
+- v0.6 intentionally does not offer permanent deletion from the Archive. This prevents accidental irreversible data loss.
 
 ## Current limitations
 

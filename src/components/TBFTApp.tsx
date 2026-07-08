@@ -36,7 +36,7 @@ import type {
 
 const DEFAULT_TIMEZONE = "Europe/Berlin";
 
-type Section = "today" | "projects" | "calendar" | "activity" | "settings";
+type Section = "today" | "projects" | "calendar" | "activity" | "archive" | "settings";
 type TaskVisualState = "pending" | "completed" | "overdue" | "carried" | "future";
 type SyncState = "loading" | "saving" | "saved" | "offline" | "error";
 
@@ -140,7 +140,7 @@ export default function TBFTApp() {
   const [selectedDate, setSelectedDate] = useState("");
   const [taskModal, setTaskModal] = useState<{ task?: Task; ownerId: string; date: string; projectId?: string; projectNodeId?: string } | null>(null);
   const [threadTaskId, setThreadTaskId] = useState<string | null>(null);
-  const [projectModalOpen, setProjectModalOpen] = useState(false);
+  const [projectModal, setProjectModal] = useState<{ project?: Project } | null>(null);
   const [phaseProjectId, setPhaseProjectId] = useState<string | null>(null);
   const [confirmDialog, setConfirmDialog] = useState<ConfirmDialogState | null>(null);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
@@ -200,9 +200,10 @@ export default function TBFTApp() {
         window.localStorage.setItem(`tbft-cloud-cache-v1-${authUser.id}`, JSON.stringify(loaded));
         const currentBoardDate = getBoardDate(loaded.settings.timezone, loaded.settings.rolloverHour);
         setSelectedDate((current) => current || currentBoardDate);
-        setSelectedProjectId((current) => current && loaded?.projects.some((p) => p.id === current)
+        const activeProjects = loaded.projects.filter((project) => !project.deletedAt);
+        setSelectedProjectId((current) => current && activeProjects.some((project) => project.id === current)
           ? current
-          : loaded.projects[0]?.id ?? null);
+          : activeProjects[0]?.id ?? null);
       }
       setSyncState("saved");
     } catch (error) {
@@ -444,9 +445,9 @@ export default function TBFTApp() {
       return;
     }
     setConfirmDialog({
-      title: "Delete task?",
-      message: `“${task.title}” will be removed from the dashboard and project views.`,
-      confirmLabel: "Delete task",
+      title: "Move task to archive?",
+      message: `“${task.title}” will leave the dashboard and project views, but its notes and history will remain recoverable.`,
+      confirmLabel: "Move to archive",
       tone: "danger",
       onConfirm: async () => {
         await mutate(async () => {
@@ -455,8 +456,8 @@ export default function TBFTApp() {
             .update({ deleted_at: new Date().toISOString() })
             .eq("id", task.id);
           if (error) throw error;
-          await safeActivity("task", task.id, "deleted", `deleted “${task.title}”.`);
-        }, "Task removed");
+          await safeActivity("task", task.id, "archived", `archived “${task.title}”.`);
+        }, "Task moved to archive");
       },
     });
   };
@@ -475,31 +476,101 @@ export default function TBFTApp() {
     });
   };
 
-  const createProjectAction = async (name: string, description: string, targetDate: string) => {
-    let newProjectId: string | null = null;
+  const saveProjectAction = async (
+    name: string,
+    description: string,
+    targetDate: string,
+    existingProject?: Project,
+  ) => {
+    let savedProjectId: string | null = existingProject?.id ?? null;
+    const cleanedName = name.trim();
     const success = await mutate(async () => {
-      const { data: inserted, error } = await supabase
-        .from("projects")
-        .insert({
-          workspace_id: data.workspaceId,
-          name: name.trim(),
-          description: description.trim(),
-          owner_user_id: null,
-          is_joint: true,
-          target_date: targetDate || null,
-          preferred_view: "flow",
-          created_by: activeUserId,
-        })
-        .select("id")
-        .single();
-      if (error) throw error;
-      newProjectId = inserted.id;
-      await safeActivity("project", inserted.id, "created", `created project “${name.trim()}”.`);
-    }, "Project created");
+      if (existingProject) {
+        const { error } = await supabase
+          .from("projects")
+          .update({
+            name: cleanedName,
+            description: description.trim(),
+            target_date: targetDate || null,
+          })
+          .eq("id", existingProject.id);
+        if (error) throw error;
+        await safeActivity("project", existingProject.id, "updated", `edited project “${cleanedName}”.`);
+      } else {
+        const { data: inserted, error } = await supabase
+          .from("projects")
+          .insert({
+            workspace_id: data.workspaceId,
+            name: cleanedName,
+            description: description.trim(),
+            owner_user_id: null,
+            is_joint: true,
+            target_date: targetDate || null,
+            preferred_view: "flow",
+            created_by: activeUserId,
+          })
+          .select("id")
+          .single();
+        if (error) throw error;
+        savedProjectId = inserted.id;
+        await safeActivity("project", inserted.id, "created", `created project “${cleanedName}”.`);
+      }
+    }, existingProject ? "Project updated" : "Project created");
+
     if (success) {
-      setProjectModalOpen(false);
-      setSelectedProjectId(newProjectId);
+      setProjectModal(null);
+      setSelectedProjectId(savedProjectId);
     }
+  };
+
+  const archiveProject = (project: Project) => {
+    setConfirmDialog({
+      title: "Move project to archive?",
+      message: `“${project.name}” and its phases will leave the Projects page. Connected tasks stay on their dashboards and will reconnect if the project is restored.`,
+      confirmLabel: "Move to archive",
+      tone: "danger",
+      onConfirm: async () => {
+        const success = await mutate(async () => {
+          const { error } = await supabase
+            .from("projects")
+            .update({ deleted_at: new Date().toISOString() })
+            .eq("id", project.id);
+          if (error) throw error;
+          await safeActivity("project", project.id, "archived", `archived project “${project.name}”.`);
+        }, "Project moved to archive");
+        if (success) {
+          const nextProject = data.projects.find((item) => !item.deletedAt && item.id !== project.id);
+          setSelectedProjectId(nextProject?.id ?? null);
+        }
+      },
+    });
+  };
+
+  const restoreProject = async (project: Project) => {
+    await mutate(async () => {
+      const { error } = await supabase
+        .from("projects")
+        .update({ deleted_at: null })
+        .eq("id", project.id);
+      if (error) throw error;
+      await safeActivity("project", project.id, "restored", `restored project “${project.name}”.`);
+    }, "Project restored");
+  };
+
+  const restoreTask = async (task: Task) => {
+    if (task.ownerId !== activeUserId) {
+      setToast("Only the task owner can restore it");
+      return;
+    }
+    await mutate(async () => {
+      const { error } = await supabase
+        .from("tasks")
+        .update({ deleted_at: null })
+        .eq("id", task.id);
+      if (error) throw error;
+      await safeActivity("task", task.id, "restored", `restored “${task.title}”.`);
+      await repairRollovers(supabase, data.workspaceId, boardDate);
+    }, "Task restored");
   };
 
   const addProjectNode = async (projectId: string, nodeTitle: string) => {
@@ -579,6 +650,7 @@ export default function TBFTApp() {
     { id: "projects", label: "Projects", icon: "◇" },
     { id: "calendar", label: "Calendar", icon: "□" },
     { id: "activity", label: "Activity", icon: "↗" },
+    { id: "archive", label: "Archive", icon: "⌑" },
     { id: "settings", label: "Settings", icon: "⚙" },
   ];
 
@@ -668,9 +740,11 @@ export default function TBFTApp() {
               data={data}
               selectedProjectId={selectedProjectId}
               onSelectProject={setSelectedProjectId}
-              onCreateProject={() => setProjectModalOpen(true)}
+              onCreateProject={() => setProjectModal({})}
               onAddNode={(project) => setPhaseProjectId(project.id)}
               onUpdateView={updateProjectView}
+              onEditProject={(project) => setProjectModal({ project })}
+              onArchiveProject={archiveProject}
               onOpenTask={(task) => setTaskModal({ task, ownerId: task.ownerId, date: task.originalDate })}
               onCreateTask={(projectId, projectNodeId) => setTaskModal({ ownerId: activeUserId, date: boardDate, projectId, projectNodeId })}
             />
@@ -692,6 +766,15 @@ export default function TBFTApp() {
           )}
 
           {section === "activity" && <ActivityPage data={data} />}
+
+          {section === "archive" && (
+            <ArchivePage
+              data={data}
+              activeUserId={activeUserId}
+              onRestoreProject={restoreProject}
+              onRestoreTask={restoreTask}
+            />
+          )}
 
           {section === "settings" && (
             <SettingsPage
@@ -733,8 +816,12 @@ export default function TBFTApp() {
         />
       )}
 
-      {projectModalOpen && (
-        <ProjectEditor onClose={() => setProjectModalOpen(false)} onSave={createProjectAction} />
+      {projectModal && (
+        <ProjectEditor
+          project={projectModal.project}
+          onClose={() => setProjectModal(null)}
+          onSave={saveProjectAction}
+        />
       )}
 
       {phaseProjectId && (
@@ -1177,7 +1264,7 @@ function TaskCard({
   const state = getTaskState(task, viewingDate, data, now);
   const owner = userById(data, task.ownerId);
   const creator = userById(data, task.creatorId);
-  const project = data.projects.find((item) => item.id === task.projectId);
+  const project = data.projects.find((item) => !item.deletedAt && item.id === task.projectId);
   const node = project?.nodes.find((item) => item.id === task.projectNodeId);
   const messages = data.messages.filter((message) => message.taskId === task.id).length;
   const isOwner = task.ownerId === activeUserId;
@@ -1215,7 +1302,7 @@ function TaskCard({
         </div>
         <div className="task-menu">
           <button onClick={onEdit} title="Edit task" aria-label="Edit task">Edit</button>
-          <button onClick={onDelete} disabled={!isOwner} title={isOwner ? "Delete task" : "Only the owner can delete"} aria-label="Delete task">Delete</button>
+          <button onClick={onDelete} disabled={!isOwner} title={isOwner ? "Move task to archive" : "Only the owner can archive"} aria-label="Move task to archive">Archive</button>
         </div>
       </div>
 
@@ -1245,6 +1332,8 @@ function ProjectsPage({
   onCreateProject,
   onAddNode,
   onUpdateView,
+  onEditProject,
+  onArchiveProject,
   onOpenTask,
   onCreateTask,
 }: {
@@ -1254,10 +1343,13 @@ function ProjectsPage({
   onCreateProject: () => void;
   onAddNode: (project: Project) => void;
   onUpdateView: (projectId: string, view: Project["view"]) => void;
+  onEditProject: (project: Project) => void;
+  onArchiveProject: (project: Project) => void;
   onOpenTask: (task: Task) => void;
   onCreateTask: (projectId: string, projectNodeId?: string) => void;
 }) {
-  const project = data.projects.find((item) => item.id === selectedProjectId) ?? data.projects[0];
+  const activeProjects = data.projects.filter((item) => !item.deletedAt);
+  const project = activeProjects.find((item) => item.id === selectedProjectId) ?? activeProjects[0];
 
   return (
     <>
@@ -1270,7 +1362,7 @@ function ProjectsPage({
 
       <div className="project-layout">
         <aside className="project-list-panel">
-          {data.projects.map((item) => {
+          {activeProjects.map((item) => {
             const tasks = data.tasks.filter((task) => !task.deletedAt && task.projectId === item.id);
             const complete = tasks.filter((task) => task.completedAt).length;
             const progress = tasks.length ? Math.round((complete / tasks.length) * 100) : 0;
@@ -1296,6 +1388,8 @@ function ProjectsPage({
             project={project}
             onAddNode={() => onAddNode(project)}
             onUpdateView={(view) => onUpdateView(project.id, view)}
+            onEdit={() => onEditProject(project)}
+            onArchive={() => onArchiveProject(project)}
             onOpenTask={onOpenTask}
             onCreateTask={(nodeId) => onCreateTask(project.id, nodeId)}
           />
@@ -1312,6 +1406,8 @@ function ProjectWorkspace({
   project,
   onAddNode,
   onUpdateView,
+  onEdit,
+  onArchive,
   onOpenTask,
   onCreateTask,
 }: {
@@ -1319,6 +1415,8 @@ function ProjectWorkspace({
   project: Project;
   onAddNode: () => void;
   onUpdateView: (view: Project["view"]) => void;
+  onEdit: () => void;
+  onArchive: () => void;
   onOpenTask: (task: Task) => void;
   onCreateTask: (nodeId?: string) => void;
 }) {
@@ -1329,14 +1427,24 @@ function ProjectWorkspace({
   return (
     <section className="project-workspace">
       <div className="project-hero">
-        <div>
+        <div className="project-identity">
           <span className="eyebrow">JOINT PROJECT</span>
           <h3>{project.name}</h3>
           <p>{project.description || "No description yet."}</p>
+          {project.targetDate && <span className="project-target">Target · {formatShortDate(project.targetDate)}</span>}
         </div>
-        <div className="project-score">
-          <strong>{progress}%</strong>
-          <span>{completed} of {tasks.length} tasks completed</span>
+        <div className="project-hero-side">
+          <div className="project-score">
+            <strong>{progress}%</strong>
+            <span>{completed} of {tasks.length} tasks completed</span>
+          </div>
+          <details className="project-actions-menu">
+            <summary aria-label="Project actions" title="Project actions">•••</summary>
+            <div>
+              <button type="button" onClick={onEdit}>Edit project</button>
+              <button type="button" className="archive-action" onClick={onArchive}>Move to archive</button>
+            </div>
+          </details>
         </div>
       </div>
       <div className="large-progress"><i style={{ width: `${progress}%` }} /></div>
@@ -1535,6 +1643,95 @@ function CalendarPage({
         onEdit={onEdit}
         onThread={onThread}
       />
+    </>
+  );
+}
+
+function ArchivePage({
+  data,
+  activeUserId,
+  onRestoreProject,
+  onRestoreTask,
+}: {
+  data: AppData;
+  activeUserId: string;
+  onRestoreProject: (project: Project) => void | Promise<void>;
+  onRestoreTask: (task: Task) => void | Promise<void>;
+}) {
+  const archivedProjects = data.projects
+    .filter((project) => project.deletedAt)
+    .sort((a, b) => new Date(b.deletedAt ?? 0).getTime() - new Date(a.deletedAt ?? 0).getTime());
+  const archivedTasks = data.tasks
+    .filter((task) => task.deletedAt)
+    .sort((a, b) => new Date(b.deletedAt ?? 0).getTime() - new Date(a.deletedAt ?? 0).getTime());
+  const archivedAt = (value?: string) => value
+    ? new Intl.DateTimeFormat("en-US", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value))
+    : "Recently archived";
+
+  return (
+    <>
+      <PageHeading
+        eyebrow="RECOVERABLE ITEMS"
+        title="Archive"
+        description="Deleted tasks and projects stay here until you restore them. Nothing in this archive is permanently removed."
+      />
+
+      <div className="archive-grid">
+        <section className="archive-panel">
+          <div className="archive-panel-heading">
+            <div><span className="eyebrow">PROJECTS</span><h3>Archived projects</h3></div>
+            <strong>{archivedProjects.length}</strong>
+          </div>
+          <div className="archive-list">
+            {archivedProjects.length ? archivedProjects.map((project) => {
+              const connectedTasks = data.tasks.filter((task) => task.projectId === project.id).length;
+              return (
+                <article className="archive-item" key={project.id}>
+                  <div className="archive-item-icon">◇</div>
+                  <div className="archive-item-copy">
+                    <strong>{project.name}</strong>
+                    <p>{project.description || "No description"}</p>
+                    <span>{connectedTasks} connected task{connectedTasks === 1 ? "" : "s"} · Archived {archivedAt(project.deletedAt)}</span>
+                  </div>
+                  <button className="secondary-button compact" onClick={() => onRestoreProject(project)}>Restore</button>
+                </article>
+              );
+            }) : <div className="archive-empty"><strong>No archived projects</strong><span>Projects moved to the archive will appear here.</span></div>}
+          </div>
+        </section>
+
+        <section className="archive-panel">
+          <div className="archive-panel-heading">
+            <div><span className="eyebrow">TASKS</span><h3>Archived tasks</h3></div>
+            <strong>{archivedTasks.length}</strong>
+          </div>
+          <div className="archive-list">
+            {archivedTasks.length ? archivedTasks.map((task) => {
+              const owner = userById(data, task.ownerId);
+              const project = data.projects.find((item) => item.id === task.projectId);
+              const canRestore = task.ownerId === activeUserId;
+              return (
+                <article className="archive-item" key={task.id}>
+                  <div className="archive-item-icon">✓</div>
+                  <div className="archive-item-copy">
+                    <strong>{task.title}</strong>
+                    <p>{owner.name} · {formatShortDate(task.originalDate)}{project ? ` · ${project.name}` : ""}</p>
+                    <span>Archived {archivedAt(task.deletedAt)}</span>
+                  </div>
+                  <button
+                    className="secondary-button compact"
+                    disabled={!canRestore}
+                    title={canRestore ? "Restore task" : "Only the task owner can restore it"}
+                    onClick={() => onRestoreTask(task)}
+                  >
+                    Restore
+                  </button>
+                </article>
+              );
+            }) : <div className="archive-empty"><strong>No archived tasks</strong><span>Tasks moved to the archive will appear here.</span></div>}
+          </div>
+        </section>
+      </div>
     </>
   );
 }
@@ -1749,7 +1946,7 @@ function TaskEditor({
     projectId: task?.projectId ?? defaultProjectId ?? "",
     projectNodeId: task?.projectNodeId ?? defaultProjectNodeId ?? "",
   });
-  const project = data.projects.find((item) => item.id === form.projectId);
+  const project = data.projects.find((item) => !item.deletedAt && item.id === form.projectId);
   const isNew = !task;
 
   const submit = (event: FormEvent) => {
@@ -1820,7 +2017,7 @@ function TaskEditor({
               onChange={(event) => setForm({ ...form, projectId: event.target.value, projectNodeId: "" })}
             >
               <option value="">No project</option>
-              {data.projects.map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
+              {data.projects.filter((item) => !item.deletedAt).map((item) => <option key={item.id} value={item.id}>{item.name}</option>)}
             </select>
           </label>
           <label>
@@ -1889,18 +2086,45 @@ function ThreadModal({ data, taskId, activeUserId, onClose, onSend }: { data: Ap
   );
 }
 
-function ProjectEditor({ onClose, onSave }: { onClose: () => void; onSave: (name: string, description: string, targetDate: string) => void }) {
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [targetDate, setTargetDate] = useState("");
+function ProjectEditor({
+  project,
+  onClose,
+  onSave,
+}: {
+  project?: Project;
+  onClose: () => void;
+  onSave: (name: string, description: string, targetDate: string, existingProject?: Project) => void;
+}) {
+  const [name, setName] = useState(project?.name ?? "");
+  const [description, setDescription] = useState(project?.description ?? "");
+  const [targetDate, setTargetDate] = useState(project?.targetDate ?? "");
+  const editing = Boolean(project);
+
   return (
     <div className="modal-backdrop" onMouseDown={onClose}>
-      <form className="modal-card project-editor" onSubmit={(event) => { event.preventDefault(); if (name.trim()) onSave(name, description, targetDate); }} onMouseDown={(event) => event.stopPropagation()}>
-        <div className="modal-header"><div><span className="eyebrow">NEW PROJECT</span><h3>Create a project</h3><p>Group related tasks into a shared plan.</p></div><button type="button" className="icon-button" onClick={onClose} aria-label="Close dialog">×</button></div>
+      <form
+        className="modal-card project-editor"
+        onSubmit={(event) => {
+          event.preventDefault();
+          if (name.trim()) onSave(name, description, targetDate, project);
+        }}
+        onMouseDown={(event) => event.stopPropagation()}
+      >
+        <div className="modal-header">
+          <div>
+            <span className="eyebrow">{editing ? "EDIT PROJECT" : "NEW PROJECT"}</span>
+            <h3>{editing ? "Edit project details" : "Create a project"}</h3>
+            <p>{editing ? "Update the project without changing its phases or linked tasks." : "Group related tasks into a shared plan."}</p>
+          </div>
+          <button type="button" className="icon-button" onClick={onClose} aria-label="Close dialog">×</button>
+        </div>
         <label>Project name<input autoFocus value={name} onChange={(event) => setName(event.target.value)} placeholder="e.g. Wedding planning" /></label>
         <label>Description<textarea value={description} onChange={(event) => setDescription(event.target.value)} placeholder="What does success look like?" /></label>
         <label>Target date<input type="date" value={targetDate} onChange={(event) => setTargetDate(event.target.value)} /></label>
-        <div className="modal-actions"><button type="button" className="secondary-button" onClick={onClose}>Cancel</button><button className="primary-button" disabled={!name.trim()}>Create project</button></div>
+        <div className="modal-actions">
+          <button type="button" className="secondary-button" onClick={onClose}>Cancel</button>
+          <button className="primary-button" disabled={!name.trim()}>{editing ? "Save changes" : "Create project"}</button>
+        </div>
       </form>
     </div>
   );
