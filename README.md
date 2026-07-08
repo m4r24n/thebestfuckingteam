@@ -55,7 +55,10 @@ npm run build
 7. Select GitHub and select the repository.
 8. Netlify should detect Next.js automatically.
 9. Confirm the build command is `npm run build`.
-10. Deploy the site.
+10. Keep the publish directory as `.next`.
+11. Deploy the site.
+
+The repository pins Node.js 20 and npm 10 for compatibility with Next.js 16. The committed `package-lock.json` uses the public npm registry so Netlify can install dependencies normally.
 
 No Supabase variables are required for the local-demo release.
 
