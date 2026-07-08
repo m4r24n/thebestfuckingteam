@@ -56,8 +56,8 @@ function makeInitialData(): AppData {
   const rolloverHour = 6;
 
   const users: UserProfile[] = [
-    { id: "marzan", name: "Marzan", initials: "MI", accent: "#d9dde2" },
-    { id: "shamina", name: "Shamina", initials: "SI", accent: "#d9dde2" },
+    { id: "marzan", name: "Marzan", initials: "MI", accent: "#7c9caa" },
+    { id: "shamina", name: "Shamina", initials: "SI", accent: "#a38b57" },
   ];
 
   return {
@@ -72,7 +72,7 @@ function makeInitialData(): AppData {
       discreetMode: false,
       workspaceName: "The Best Fucking Team",
       uiDensity: "compact",
-      accentColor: "#17181a",
+      accentColor: "#a38b57",
     },
   };
 }
@@ -154,7 +154,14 @@ export default function TBFTApp() {
           settings: {
             ...parsed.settings,
             uiDensity: parsed.settings.uiDensity ?? "compact",
-            accentColor: parsed.settings.accentColor ?? "#17181a",
+            accentColor: ({
+              "#17181a": "#a38b57",
+              "#365f8d": "#7c9caa",
+              "#3f6f5a": "#74836b",
+              "#6a526f": "#88758d",
+              "#8a5846": "#a47761",
+              "#356d72": "#6f8585",
+            } as Record<string, string>)[parsed.settings.accentColor] ?? parsed.settings.accentColor ?? "#a38b57",
           },
         };
         setData(migrated);
@@ -175,6 +182,11 @@ export default function TBFTApp() {
 
   useEffect(() => {
     if (data) window.localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  }, [data]);
+
+  useEffect(() => {
+    if (!data) return;
+    document.documentElement.dataset.tbftDensity = data.settings.uiDensity;
   }, [data]);
 
   useEffect(() => {
@@ -1214,19 +1226,27 @@ function SettingsPage({ data, setData, clearWorkspace }: { data: AppData; setDat
           <label>
             Accent color
             <div className="accent-selector" role="group" aria-label="Accent color">
-              {["#17181a", "#365f8d", "#3f6f5a", "#6a526f", "#8a5846", "#356d72"].map((color) => (
+              {[
+                { name: "Mustard", value: "#a38b57" },
+                { name: "Muted green", value: "#74836b" },
+                { name: "Mellow blue", value: "#7c9caa" },
+                { name: "Clay", value: "#a47761" },
+                { name: "Soft mauve", value: "#88758d" },
+                { name: "Blue green", value: "#6f8585" },
+              ].map(({ name, value }) => (
                 <button
-                  key={color}
+                  key={value}
                   type="button"
-                  className={data.settings.accentColor === color ? "active" : ""}
-                  style={{ "--swatch": color } as React.CSSProperties}
-                  aria-label={`Use accent ${color}`}
-                  onClick={() => setData((current) => current ? { ...current, settings: { ...current.settings, accentColor: color } } : current)}
+                  className={data.settings.accentColor === value ? "active" : ""}
+                  style={{ "--swatch": value } as React.CSSProperties}
+                  aria-label={`Use ${name} theme`}
+                  title={name}
+                  onClick={() => setData((current) => current ? { ...current, settings: { ...current.settings, accentColor: value } } : current)}
                 />
               ))}
             </div>
           </label>
-          <p className="settings-note">The accent remains subtle and is used only for primary actions, progress, and focus.</p>
+          <p className="settings-note">The selected mellow tone shapes the navigation, primary actions, progress, and focus states.</p>
         </div>
         <div className="settings-card">
           <span className="eyebrow">DAILY SYSTEM</span>

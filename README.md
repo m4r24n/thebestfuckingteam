@@ -102,3 +102,7 @@ public/                   App mark
 ## Product rule encoded in the database
 
 A partner can create, edit, connect, and comment on the other partner’s task. Only the assigned owner can complete or delete that task. The database trigger in `schema.sql` enforces this independently of the interface.
+
+## Appearance settings
+
+TBFT includes three full-interface sizes—Small, Medium, and Large—and six mellow theme colors. Size selection scales typography, task windows, controls, dialogs, navigation, and spacing together. The workspace uses a warm off-white matte surface with subtle CSS-generated grain.
