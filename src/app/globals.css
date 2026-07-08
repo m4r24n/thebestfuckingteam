@@ -1133,3 +1133,283 @@ select:focus-visible {
     box-shadow: 0 -0.3571rem 1.5714rem rgba(67,57,40,.07), inset 0 0.0714rem 0 rgba(255,255,255,.38);
   }
 }
+
+/* v0.5 — authentication, cloud sync, onboarding and operational-day timer */
+.auth-shell,
+.onboarding-shell {
+  min-height: 100vh;
+  padding: clamp(1.25rem, 4vw, 4rem);
+  display: grid;
+  place-items: center;
+  background:
+    radial-gradient(circle at 18% 12%, color-mix(in srgb, #a38b57, transparent 89%), transparent 31rem),
+    radial-gradient(circle at 88% 90%, color-mix(in srgb, #74836b, transparent 91%), transparent 28rem),
+    var(--bg);
+}
+
+.auth-card,
+.onboarding-card {
+  width: min(100%, 34rem);
+  padding: clamp(1.5rem, 4vw, 2.5rem);
+  border: 1px solid var(--line);
+  border-radius: 1.5rem;
+  background: color-mix(in srgb, var(--surface-raised), transparent 2%);
+  box-shadow: var(--shadow), inset 0 1px 0 rgba(255,255,255,.72);
+}
+
+.onboarding-card { width: min(100%, 68rem); }
+.compact-auth { width: min(100%, 31rem); }
+.system-card { width: min(100%, 39rem); }
+
+.auth-brand {
+  display: flex;
+  align-items: center;
+  gap: .9rem;
+  margin-bottom: 2.4rem;
+}
+
+.auth-brand > span {
+  width: 2.85rem;
+  height: 2.85rem;
+  display: grid;
+  place-items: center;
+  border-radius: .85rem;
+  background: color-mix(in srgb, var(--accent), #f5f0e4 42%);
+  border: 1px solid color-mix(in srgb, var(--accent), #6e6655 55%);
+  color: color-mix(in srgb, var(--accent), #22241f 54%);
+  font-weight: 820;
+  letter-spacing: -.04em;
+}
+
+.auth-brand div { display: grid; gap: .2rem; }
+.auth-brand small {
+  color: var(--text-faint);
+  font-size: .67rem;
+  font-weight: 760;
+  letter-spacing: .12em;
+}
+.auth-brand strong { font-size: .96rem; font-weight: 680; }
+
+.auth-copy { margin-bottom: 1.6rem; }
+.auth-copy h1,
+.system-card h1,
+.onboarding-option h1,
+.onboarding-option h2 {
+  margin: .45rem 0 .6rem;
+  font-size: clamp(1.65rem, 4vw, 2.4rem);
+  line-height: 1.08;
+  letter-spacing: -.045em;
+}
+.auth-copy p,
+.system-card > p,
+.onboarding-option > p {
+  margin: 0;
+  color: var(--text-soft);
+  line-height: 1.65;
+}
+
+.auth-form,
+.onboarding-option { display: grid; gap: 1rem; }
+.auth-form label,
+.onboarding-option label {
+  display: grid;
+  gap: .46rem;
+  color: var(--text-soft);
+  font-size: .78rem;
+  font-weight: 680;
+}
+.auth-form input,
+.onboarding-option input {
+  min-height: 3.15rem;
+  padding: 0 .95rem;
+  border: 1px solid var(--line-strong);
+  border-radius: .8rem;
+  background: color-mix(in srgb, var(--surface-raised), white 20%);
+  color: var(--text);
+}
+
+.auth-submit { width: 100%; min-height: 3.15rem; margin-top: .25rem; }
+.auth-links {
+  margin-top: 1.2rem;
+  padding-top: 1.1rem;
+  border-top: 1px solid var(--line);
+  display: flex;
+  justify-content: space-between;
+  gap: .75rem;
+}
+.auth-links button {
+  border: 0;
+  padding: .3rem 0;
+  background: transparent;
+  color: var(--text-soft);
+  cursor: pointer;
+  font-size: .78rem;
+}
+.auth-links button:hover { color: var(--text); }
+
+.form-message {
+  margin: 0;
+  padding: .8rem .9rem;
+  border-radius: .75rem;
+  font-size: .78rem;
+  line-height: 1.45;
+}
+.form-message.error { background: var(--danger-soft); color: var(--danger); border: 1px solid color-mix(in srgb, var(--danger), transparent 73%); }
+.form-message.success { background: var(--success-soft); color: var(--success); border: 1px solid color-mix(in srgb, var(--success), transparent 73%); }
+.code-list { display: grid; gap: .55rem; margin: 1.35rem 0; }
+.code-list code,
+.system-card code {
+  padding: .65rem .75rem;
+  border: 1px solid var(--line);
+  border-radius: .65rem;
+  background: var(--surface-subtle);
+  font-size: .78rem;
+}
+
+.onboarding-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(16rem, .75fr);
+  gap: 1.15rem;
+}
+.onboarding-option {
+  padding: 1.4rem;
+  border: 1px solid var(--line);
+  border-radius: 1.1rem;
+  background: color-mix(in srgb, var(--surface-raised), var(--theme-accent, #a38b57) 1.6%);
+}
+.join-option { align-content: start; background: var(--surface-subtle); }
+.onboarding-error { margin-top: 1rem; }
+.workspace-type-picker {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: .65rem;
+}
+.workspace-type-picker button {
+  min-height: 4.7rem;
+  padding: .8rem;
+  display: grid;
+  align-content: center;
+  gap: .28rem;
+  border: 1px solid var(--line);
+  border-radius: .8rem;
+  background: var(--surface-raised);
+  text-align: left;
+  cursor: pointer;
+}
+.workspace-type-picker button span { color: var(--text-soft); font-size: .72rem; }
+.workspace-type-picker button.active {
+  border-color: color-mix(in srgb, var(--accent), #4b4c45 40%);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent), transparent 58%);
+  background: var(--accent-soft);
+}
+
+.dashboard-status-row {
+  margin-bottom: .85rem;
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: .8rem;
+}
+.day-countdown {
+  width: min(19rem, 100%);
+  min-height: 3.65rem;
+  padding: .75rem .85rem .7rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: color-mix(in srgb, var(--surface-raised), var(--theme-accent) 2.4%);
+  box-shadow: var(--shadow-sm);
+}
+.day-countdown-copy {
+  margin-bottom: .55rem;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: .75rem;
+}
+.day-countdown-copy span {
+  color: var(--text-faint);
+  font-size: .62rem;
+  font-weight: 790;
+  letter-spacing: .11em;
+}
+.day-countdown-copy strong {
+  font-variant-numeric: tabular-nums;
+  font-size: 1.05rem;
+  letter-spacing: .035em;
+}
+.day-time-track {
+  height: .32rem;
+  overflow: hidden;
+  border-radius: 99rem;
+  background: color-mix(in srgb, var(--line), transparent 5%);
+  box-shadow: inset 0 1px 2px rgba(45,43,37,.12);
+}
+.day-time-track i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: color-mix(in srgb, var(--theme-accent), #3d4038 14%);
+  transition: width .8s linear;
+}
+.day-countdown.grace {
+  border-color: color-mix(in srgb, var(--danger), transparent 55%);
+  background: color-mix(in srgb, var(--danger-soft), var(--surface-raised) 34%);
+  box-shadow: 0 0 1rem color-mix(in srgb, var(--danger), transparent 78%), inset 0 1px 0 rgba(255,255,255,.6);
+}
+.day-countdown.grace .day-countdown-copy span,
+.day-countdown.grace .day-countdown-copy strong { color: var(--danger); }
+.day-countdown.grace .day-time-track { background: color-mix(in srgb, var(--danger), transparent 82%); }
+.day-countdown.grace .day-time-track i {
+  background: var(--danger);
+  box-shadow: 0 0 .75rem color-mix(in srgb, var(--danger), transparent 30%);
+}
+
+.static-chip { cursor: default; }
+.demo-badge.sync-saving .live-dot,
+.demo-badge.sync-loading .live-dot { animation: syncPulse 1.15s ease-in-out infinite; }
+.demo-badge.sync-saved .live-dot { background: var(--success); }
+.demo-badge.sync-offline .live-dot,
+.demo-badge.sync-error .live-dot { background: var(--danger); }
+@keyframes syncPulse { 50% { opacity: .35; transform: scale(.72); } }
+
+.invite-code-box {
+  margin-top: .8rem;
+  padding: .65rem .7rem;
+  border: 1px dashed color-mix(in srgb, var(--theme-accent), var(--line-strong) 45%);
+  border-radius: .7rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+  background: var(--surface-subtle);
+}
+.invite-code-box code { font-size: 1rem; font-weight: 790; letter-spacing: .12em; }
+.invite-code-box button {
+  border: 0;
+  background: transparent;
+  color: var(--text-soft);
+  cursor: pointer;
+  font-size: .75rem;
+}
+.cloud-card { grid-column: span 2; }
+.settings-actions-row { display: flex; gap: .65rem; flex-wrap: wrap; }
+.subtle-danger { background: transparent; }
+
+@media (max-width: 760px) {
+  .onboarding-grid { grid-template-columns: 1fr; }
+  .dashboard-status-row { align-items: stretch; }
+  .day-countdown { width: 100%; }
+  .dashboard-status-row .team-progress-card { flex: 0 0 8.4rem; }
+  .cloud-card { grid-column: auto; }
+}
+
+@media (max-width: 520px) {
+  .auth-shell,
+  .onboarding-shell { padding: .8rem; align-items: start; }
+  .auth-card,
+  .onboarding-card { margin-top: .5rem; border-radius: 1.1rem; padding: 1.2rem; }
+  .dashboard-status-row { flex-direction: column; }
+  .dashboard-status-row .team-progress-card { width: 100%; flex-basis: auto; }
+  .workspace-type-picker { grid-template-columns: 1fr; }
+}
+.field-hint { color: var(--text-faint); font-size: .68rem; font-weight: 520; line-height: 1.35; }

@@ -1,3 +1,6 @@
+export type WorkspaceType = "solo" | "couple";
+export type WorkspaceRole = "owner" | "partner";
+
 export type UserProfile = {
   id: string;
   name: string;
@@ -11,6 +14,12 @@ export type TaskMessage = {
   authorId: string;
   body: string;
   createdAt: string;
+};
+
+export type TaskAppearance = {
+  taskId: string;
+  boardDate: string;
+  type: "original" | "carried";
 };
 
 export type ProjectNode = {
@@ -64,8 +73,12 @@ export type AppSettings = {
 };
 
 export type AppData = {
+  workspaceId: string;
+  workspaceType: WorkspaceType;
+  currentUserRole: WorkspaceRole;
   users: UserProfile[];
   tasks: Task[];
+  taskAppearances: TaskAppearance[];
   messages: TaskMessage[];
   projects: Project[];
   activities: Activity[];
