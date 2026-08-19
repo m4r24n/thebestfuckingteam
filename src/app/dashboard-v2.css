@@ -1,0 +1,207 @@
+/* TBFT 2.0 — calm Today dashboard
+   Desktop gets two independent task workspaces. Mobile keeps natural document scrolling.
+   Scoped with :has(.dashboard-status-row) so Projects, Calendar, Settings, etc. stay untouched. */
+
+.page-content:has(.dashboard-status-row) {
+  --dashboard-glass: color-mix(in srgb, var(--surface-raised), transparent 16%);
+  --dashboard-glass-strong: color-mix(in srgb, var(--surface-raised), transparent 7%);
+  --dashboard-line: color-mix(in srgb, var(--line-strong), transparent 34%);
+  --dashboard-shadow: 0 1.1rem 3rem rgba(61, 52, 37, .07), inset 0 1px 0 rgba(255,255,255,.62);
+}
+
+/* Keep the landing page quiet: date + the two people. */
+.page-content:has(.dashboard-status-row) .dashboard-status-row {
+  display: none;
+}
+
+.page-content:has(.dashboard-status-row) .page-heading {
+  min-height: auto;
+  margin: .15rem 0 1rem;
+  align-items: center;
+}
+
+.page-content:has(.dashboard-status-row) .page-heading .eyebrow,
+.page-content:has(.dashboard-status-row) .page-heading p {
+  display: none;
+}
+
+.page-content:has(.dashboard-status-row) .page-heading h2 {
+  margin: 0;
+  font-size: clamp(1.3rem, 1.7vw, 1.75rem);
+  font-weight: 620;
+  letter-spacing: -.035em;
+}
+
+.page-content:has(.dashboard-status-row) .split-board {
+  gap: 1rem;
+}
+
+.page-content:has(.dashboard-status-row) .notepad-column {
+  border-color: var(--dashboard-line);
+  background: var(--dashboard-glass);
+  background-image: none;
+  box-shadow: var(--dashboard-shadow);
+  backdrop-filter: blur(18px) saturate(108%);
+  -webkit-backdrop-filter: blur(18px) saturate(108%);
+}
+
+.page-content:has(.dashboard-status-row) .column-header {
+  z-index: 3;
+  background: var(--dashboard-glass-strong);
+  backdrop-filter: blur(16px) saturate(108%);
+  -webkit-backdrop-filter: blur(16px) saturate(108%);
+  border-bottom-color: color-mix(in srgb, var(--dashboard-line), transparent 8%);
+}
+
+.page-content:has(.dashboard-status-row) .partner-title > div > span {
+  letter-spacing: .09em;
+  opacity: .74;
+}
+
+.page-content:has(.dashboard-status-row) .partner-title h3 {
+  font-size: 1rem;
+  font-weight: 630;
+}
+
+.page-content:has(.dashboard-status-row) .column-stat strong {
+  font-weight: 640;
+}
+
+.page-content:has(.dashboard-status-row) .quick-add {
+  min-height: 2.55rem;
+  border-style: solid;
+  border-color: color-mix(in srgb, var(--dashboard-line), transparent 15%);
+  background: color-mix(in srgb, var(--surface-raised), transparent 35%);
+  color: var(--text-soft);
+}
+
+.page-content:has(.dashboard-status-row) .quick-add:hover {
+  background: color-mix(in srgb, var(--surface-raised), transparent 12%);
+  border-color: color-mix(in srgb, var(--theme-accent), var(--dashboard-line) 72%);
+}
+
+.page-content:has(.dashboard-status-row) .task-card {
+  border: 1px solid color-mix(in srgb, var(--dashboard-line), transparent 12%);
+  border-left-width: 2px;
+  background: color-mix(in srgb, var(--surface-raised), transparent 17%);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.50);
+}
+
+.page-content:has(.dashboard-status-row) .task-card:hover {
+  transform: none;
+  border-color: color-mix(in srgb, var(--theme-accent), var(--dashboard-line) 82%);
+  box-shadow: 0 .55rem 1.5rem rgba(61,52,37,.065), inset 0 1px 0 rgba(255,255,255,.60);
+}
+
+.page-content:has(.dashboard-status-row) .task-card.state-completed {
+  background: color-mix(in srgb, var(--surface-raised), var(--success-soft) 22%);
+}
+
+.page-content:has(.dashboard-status-row) .task-card.state-overdue {
+  background: color-mix(in srgb, var(--surface-raised), var(--danger-soft) 13%);
+}
+
+.page-content:has(.dashboard-status-row) .task-card.state-carried {
+  background: color-mix(in srgb, var(--surface-raised), var(--warning-soft) 18%);
+}
+
+.page-content:has(.dashboard-status-row) .task-card.state-future {
+  background: color-mix(in srgb, var(--surface-raised), var(--future-soft) 17%);
+}
+
+.page-content:has(.dashboard-status-row) .empty-state {
+  min-height: 11rem;
+}
+
+/* Desktop / laptop: the two people scroll independently. */
+@media (min-width: 761px) {
+  .main-panel:has(.dashboard-status-row) {
+    height: 100dvh;
+    overflow: hidden;
+  }
+
+  .main-panel:has(.dashboard-status-row) .topbar {
+    position: relative;
+  }
+
+  .page-content:has(.dashboard-status-row) {
+    height: calc(100dvh - 4.5714rem);
+    min-height: 0;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    overflow: hidden;
+  }
+
+  .page-content:has(.dashboard-status-row) .split-board {
+    min-height: 0;
+    height: 100%;
+    overflow: hidden;
+  }
+
+  .page-content:has(.dashboard-status-row) .notepad-column {
+    min-height: 0;
+    height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in srgb, var(--text-faint), transparent 45%) transparent;
+  }
+
+  .page-content:has(.dashboard-status-row) .notepad-column::-webkit-scrollbar {
+    width: .48rem;
+  }
+
+  .page-content:has(.dashboard-status-row) .notepad-column::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .page-content:has(.dashboard-status-row) .notepad-column::-webkit-scrollbar-thumb {
+    border-radius: 99rem;
+    background: color-mix(in srgb, var(--text-faint), transparent 52%);
+  }
+
+  .page-content:has(.dashboard-status-row) .column-header {
+    position: sticky;
+    top: -.8571rem;
+    margin: -.8571rem -.8571rem 0;
+    padding: 1rem 1.0714rem .8rem;
+  }
+
+  .page-content:has(.dashboard-status-row) .quick-add {
+    margin-top: .72rem;
+  }
+}
+
+/* Phone/tablet: same visual language, but no desktop-style nested scrolling. */
+@media (max-width: 760px) {
+  .page-content:has(.dashboard-status-row) {
+    --dashboard-glass: color-mix(in srgb, var(--surface-raised), transparent 9%);
+  }
+
+  .page-content:has(.dashboard-status-row) .page-heading {
+    margin-bottom: .75rem;
+  }
+
+  .page-content:has(.dashboard-status-row) .split-board {
+    gap: .75rem;
+  }
+
+  .page-content:has(.dashboard-status-row) .notepad-column {
+    min-height: 0;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .page-content:has(.dashboard-status-row) .notepad-column,
+  .page-content:has(.dashboard-status-row) .column-header,
+  .page-content:has(.dashboard-status-row) .task-card,
+  .page-content:has(.dashboard-status-row) .quick-add {
+    background: var(--surface-raised);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
+}
