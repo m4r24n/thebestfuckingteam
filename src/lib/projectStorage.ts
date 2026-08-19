@@ -2,38 +2,6 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { ProjectFile, ProjectFileSpace, StorageProvider } from "@/lib/types";
 import { getStorageProvider } from "@/lib/storageProviders";
 
-function safeFileName(name: string): string {
-  const cleaned = name
-    .normalize("NFKC")
-    .replace(/[\\/:*?"<>|\u0000-\u001F]/g, "-")
-    .replace(/\s+/g, " ")
-    .trim();
-  return (cleaned || "file").slice(0, 180);
-}
-
-function storagePath(input: {
-  workspaceId: string;
-  projectId?: string;
-  taskId?: string;
-  fileName: string;
-}): string {
-  let scope: string;
-  if (input.taskId) {
-    scope = input.projectId
-      ? `projects/${input.projectId}/tasks/${input.taskId}`
-      : `lonely/tasks/${input.taskId}`;
-  } else if (input.projectId) {
-    scope = `projects/${input.projectId}/project`;
-  } else {
-    throw new Error("A file must belong to a project or task workspace.");
-  }
-
-  const unique = typeof crypto !== "undefined" && "randomUUID" in crypto
-    ? crypto.randomUUID()
-    : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-  return `${input.workspaceId}/${scope}/${unique}-${safeFileName(input.fileName)}`;
-}
-
 function mapSpace(row: Record<string, unknown>): ProjectFileSpace {
   return {
     id: row.id as string,
@@ -185,14 +153,12 @@ export async function uploadProjectFile(
   const resolvedTaskId = (space.task_id as string | null) ?? input.taskId;
   const provider = input.provider ?? (space.provider as StorageProvider) ?? "supabase";
   const adapter = getStorageProvider(supabase, provider);
-  const proposedPath = storagePath({
-    workspaceId: input.workspaceId,
-    projectId: resolvedProjectId,
-    taskId: resolvedTaskId,
-    fileName: input.file.name,
-  });
 
-  const stored = await adapter.upload({ path: proposedPath, file: input.file });
+  const stored = await adapter.upload({
+    workspaceId: input.workspaceId,
+    fileSpaceId: space.id as string,
+    file: input.file,
+  });
 
   const { data: inserted, error: metadataError } = await supabase
     .from("project_files")
