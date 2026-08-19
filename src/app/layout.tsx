@@ -4,6 +4,7 @@ import "./dashboard-v2.css";
 import "./recurring-tasks.css";
 import "./archive-permanent-delete.css";
 import "./project-workspace-v2.css";
+import "./google-drive.css";
 
 export const metadata: Metadata = {
   title: "The Best Fucking Team",
