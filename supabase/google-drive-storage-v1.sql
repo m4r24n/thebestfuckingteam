@@ -58,3 +58,18 @@ as $$
 $$;
 
 grant execute on function public.storage_connection_status(uuid) to authenticated;
+
+-- Keep the physical Google Drive hierarchy close to the logical TBFT file-space tree.
+-- The client subscribes to these changes and asks the authenticated server route to sync.
+do $$
+begin
+  if exists (select 1 from pg_publication where pubname = 'supabase_realtime')
+     and not exists (
+       select 1 from pg_publication_tables
+       where pubname = 'supabase_realtime'
+         and schemaname = 'public'
+         and tablename = 'project_file_spaces'
+     ) then
+    alter publication supabase_realtime add table public.project_file_spaces;
+  end if;
+end $$;
