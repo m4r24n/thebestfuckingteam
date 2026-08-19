@@ -120,7 +120,15 @@ export default function ArchivePermanentDeleteControls() {
   if (!target) return null;
 
   const visibleProjects = projects.filter((project) => project.created_by === userId || workspaceRole === "owner");
-  const visibleTasks = tasks.filter((task) => task.owner_user_id === userId);
+  const archivedRootIds = new Set(
+    tasks
+      .filter((task) => task.recurrence_source_id === null)
+      .map((task) => task.id),
+  );
+  const visibleTasks = tasks.filter((task) =>
+    task.owner_user_id === userId
+    && (task.recurrence_source_id === null || !archivedRootIds.has(task.recurrence_source_id)),
+  );
 
   const panel = (
     <details className="archive-purge-panel">
