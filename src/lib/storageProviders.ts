@@ -9,7 +9,7 @@ export type StoredObject = {
 
 export interface StorageProviderAdapter {
   readonly id: StorageProvider;
-  upload(input: { path: string; file: File }): Promise<StoredObject>;
+  upload(input: { workspaceId: string; fileSpaceId: string; file: File }): Promise<StoredObject>;
   createOpenUrl(file: ProjectFile, expiresInSeconds?: number): Promise<string>;
   remove(file: ProjectFile): Promise<void>;
 }
@@ -22,6 +22,12 @@ export class StorageProviderNotConfiguredError extends Error {
     super(`${label} is not connected yet. TBFT keeps file metadata in Supabase, but new document bytes must be stored in a connected external provider.`);
     this.name = "StorageProviderNotConfiguredError";
   }
+}
+
+async function sessionAccessToken(supabase: SupabaseClient): Promise<string> {
+  const { data, error } = await supabase.auth.getSession();
+  if (error || !data.session?.access_token) throw new Error("Your TBFT session expired. Sign in again.");
+  return data.session.access_token;
 }
 
 /**
@@ -57,6 +63,77 @@ class SupabaseStorageProvider implements StorageProviderAdapter {
   }
 }
 
+class GoogleDriveStorageProvider implements StorageProviderAdapter {
+  readonly id: StorageProvider = "google_drive";
+
+  constructor(private readonly supabase: SupabaseClient) {}
+
+  async upload(input: { workspaceId: string; fileSpaceId: string; file: File }): Promise<StoredObject> {
+    const token = await sessionAccessToken(this.supabase);
+    const start = await fetch("/api/google-drive/upload-session", {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${token}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        workspaceId: input.workspaceId,
+        fileSpaceId: input.fileSpaceId,
+        name: input.file.name,
+        mimeType: input.file.type || "application/octet-stream",
+        size: input.file.size,
+      }),
+    });
+    const startBody = await start.json() as { uploadUrl?: string; error?: string };
+    if (!start.ok || !startBody.uploadUrl) {
+      throw new Error(startBody.error ?? "Could not start Google Drive upload.");
+    }
+
+    const upload = await fetch(startBody.uploadUrl, {
+      method: "PUT",
+      headers: { "content-type": input.file.type || "application/octet-stream" },
+      body: input.file,
+    });
+    if (!upload.ok) {
+      const text = await upload.text();
+      throw new Error(`Google Drive upload failed (${upload.status}): ${text.slice(0, 300)}`);
+    }
+
+    const file = await upload.json() as {
+      id?: string;
+      webViewLink?: string;
+      webContentLink?: string;
+    };
+    if (!file.id) throw new Error("Google Drive did not return a file ID.");
+
+    return {
+      externalFileId: file.id,
+      externalFileUrl: file.webViewLink ?? file.webContentLink ?? `https://drive.google.com/open?id=${file.id}`,
+    };
+  }
+
+  async createOpenUrl(file: ProjectFile): Promise<string> {
+    if (file.externalFileUrl) return file.externalFileUrl;
+    if (file.externalFileId) return `https://drive.google.com/open?id=${file.externalFileId}`;
+    throw new Error("Google Drive file ID is missing.");
+  }
+
+  async remove(file: ProjectFile): Promise<void> {
+    if (!file.externalFileId || file.id === "pending") return;
+    const token = await sessionAccessToken(this.supabase);
+    const response = await fetch("/api/google-drive/file", {
+      method: "DELETE",
+      headers: {
+        authorization: `Bearer ${token}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({ metadataId: file.id }),
+    });
+    const body = await response.json() as { error?: string };
+    if (!response.ok) throw new Error(body.error ?? "Could not remove Google Drive file.");
+  }
+}
+
 class ExternalStorageProvider implements StorageProviderAdapter {
   constructor(readonly id: StorageProvider) {}
 
@@ -79,6 +156,7 @@ export function getStorageProvider(
   provider: StorageProvider,
 ): StorageProviderAdapter {
   if (provider === "supabase") return new SupabaseStorageProvider(supabase, "tbft-files");
+  if (provider === "google_drive") return new GoogleDriveStorageProvider(supabase);
   return new ExternalStorageProvider(provider);
 }
 
