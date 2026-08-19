@@ -1,0 +1,155 @@
+.archive-purge-panel {
+  grid-column: 1 / -1;
+  border: 1px solid color-mix(in srgb, var(--line-strong), transparent 28%);
+  border-radius: 1rem;
+  background: color-mix(in srgb, var(--surface-raised), transparent 10%);
+  overflow: hidden;
+}
+
+.archive-purge-panel > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: .95rem 1rem;
+  cursor: pointer;
+  list-style: none;
+}
+
+.archive-purge-panel > summary::-webkit-details-marker { display: none; }
+.archive-purge-panel > summary span { font-weight: 650; }
+.archive-purge-panel > summary small { color: var(--text-faint); }
+
+.archive-purge-body {
+  padding: 0 1rem 1rem;
+  border-top: 1px solid color-mix(in srgb, var(--line-strong), transparent 45%);
+}
+
+.archive-purge-warning,
+.archive-purge-error,
+.archive-purge-empty {
+  margin: .9rem 0;
+  color: var(--text-soft);
+  font-size: .8rem;
+}
+
+.archive-purge-error { color: var(--danger); }
+
+.archive-purge-columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.archive-purge-columns section {
+  min-width: 0;
+  padding: .9rem;
+  border: 1px solid color-mix(in srgb, var(--line-strong), transparent 45%);
+  border-radius: .85rem;
+  background: color-mix(in srgb, var(--surface-raised), transparent 25%);
+}
+
+.archive-purge-columns h4 {
+  margin: 0 0 .65rem;
+  font-size: .82rem;
+}
+
+.archive-purge-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: .8rem;
+  padding: .65rem 0;
+  border-top: 1px solid color-mix(in srgb, var(--line-strong), transparent 58%);
+}
+
+.archive-purge-row:first-of-type { border-top: 0; }
+
+.archive-purge-row > span {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: .12rem;
+}
+
+.archive-purge-row > span small {
+  color: var(--text-faint);
+  font-size: .68rem;
+}
+
+.archive-purge-row button {
+  border: 0;
+  background: transparent;
+  color: var(--danger);
+  font: inherit;
+  font-size: .72rem;
+  cursor: pointer;
+}
+
+.archive-purge-row button:hover { text-decoration: underline; }
+
+.archive-delete-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgba(46, 42, 35, .22);
+  backdrop-filter: blur(5px);
+  -webkit-backdrop-filter: blur(5px);
+}
+
+.archive-delete-dialog {
+  width: min(31rem, 100%);
+  padding: 1.25rem;
+  border: 1px solid color-mix(in srgb, var(--line-strong), transparent 18%);
+  border-radius: 1rem;
+  background: var(--surface-raised);
+  box-shadow: 0 1.2rem 4rem rgba(47, 42, 33, .14);
+}
+
+.archive-delete-dialog h3 {
+  margin: .35rem 0 .55rem;
+  font-size: 1.08rem;
+}
+
+.archive-delete-dialog p {
+  margin: 0;
+  color: var(--text-soft);
+  line-height: 1.55;
+}
+
+.archive-delete-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: .55rem;
+  margin-top: 1rem;
+}
+
+.archive-delete-actions button {
+  min-height: 2.35rem;
+  padding: .55rem .8rem;
+  border: 1px solid var(--line-strong);
+  border-radius: .65rem;
+  background: var(--surface-raised);
+  color: var(--text);
+  cursor: pointer;
+}
+
+.archive-delete-actions button.danger {
+  border-color: color-mix(in srgb, var(--danger), transparent 55%);
+  background: color-mix(in srgb, var(--danger-soft), var(--surface-raised) 45%);
+  color: var(--danger);
+}
+
+.archive-delete-actions button:disabled {
+  opacity: .58;
+  cursor: default;
+}
+
+@media (max-width: 760px) {
+  .archive-purge-columns { grid-template-columns: 1fr; }
+  .archive-purge-row { grid-template-columns: 1fr; gap: .35rem; }
+  .archive-purge-row button { justify-self: start; }
+}
