@@ -1,0 +1,27 @@
+.recurrence-field {
+  min-width: 0;
+}
+
+.recurrence-interval-control {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: .55rem;
+}
+
+.recurrence-interval-control input {
+  width: 100%;
+}
+
+.recurrence-interval-control span {
+  color: var(--text-soft);
+  font-size: .68rem;
+  font-weight: 620;
+}
+
+@media (max-width: 520px) {
+  .recurrence-interval-control {
+    grid-template-columns: 1fr;
+    gap: .25rem;
+  }
+}
