@@ -1,32 +1,36 @@
-/* TBFT 2.0 — desktop Today screen inspired by the approved Android Today UI.
-   Same calm dark visual language, but sized and structured for larger LCD/monitor displays.
-   Projects, Calendar, Settings, auth and other sections remain untouched. */
+/* TBFT 2.0 — calm desktop Today dashboard.
+   Warm low-contrast paper tones for an always-open home page, with a restrained
+   typewriter feel on task-facing text. Other sections remain untouched. */
 
 .main-panel:has(.dashboard-status-row) {
-  --dash-bg: #0e0e0e;
-  --dash-panel: rgba(255,255,255,.055);
-  --dash-panel-strong: rgba(20,20,20,.92);
-  --dash-task: rgba(255,255,255,.072);
-  --dash-task-hover: rgba(255,255,255,.105);
-  --dash-line: rgba(255,255,255,.085);
-  --dash-line-strong: rgba(255,255,255,.14);
-  --dash-text: rgba(255,255,255,.96);
-  --dash-soft: rgba(255,255,255,.68);
-  --dash-faint: rgba(255,255,255,.43);
+  --dash-bg: #e8e4da;
+  --dash-bg-soft: #eeeadf;
+  --dash-panel: rgba(246, 243, 235, .64);
+  --dash-panel-strong: rgba(238, 234, 224, .93);
+  --dash-task: rgba(248, 246, 240, .72);
+  --dash-task-hover: rgba(250, 248, 242, .88);
+  --dash-line: rgba(102, 96, 82, .12);
+  --dash-line-strong: rgba(102, 96, 82, .20);
+  --dash-text: #4b4943;
+  --dash-soft: #716d64;
+  --dash-faint: #979188;
+  --dash-sage: #78877a;
+  --dash-warm: #9a8668;
+  --dash-mono: ui-monospace, "SFMono-Regular", "Cascadia Mono", "Liberation Mono", "Courier New", monospace;
   background:
-    radial-gradient(circle at 20% 8%, rgba(255,255,255,.025), transparent 30rem),
-    radial-gradient(circle at 82% 92%, rgba(255,255,255,.018), transparent 34rem),
-    var(--dash-bg);
+    radial-gradient(circle at 12% 8%, rgba(255,255,255,.42), transparent 32rem),
+    radial-gradient(circle at 86% 92%, rgba(120,135,122,.05), transparent 34rem),
+    linear-gradient(135deg, #ece8de, var(--dash-bg) 54%, #e5e0d5);
   color: var(--dash-text);
 }
 
 .main-panel:has(.dashboard-status-row) .topbar {
-  background: rgba(14,14,14,.88);
+  background: rgba(235, 231, 220, .88);
   color: var(--dash-text);
   border-bottom-color: var(--dash-line);
-  box-shadow: none;
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
+  box-shadow: 0 1px 0 rgba(255,255,255,.40);
+  backdrop-filter: blur(16px) saturate(104%);
+  -webkit-backdrop-filter: blur(16px) saturate(104%);
 }
 
 .main-panel:has(.dashboard-status-row) .topbar .eyebrow,
@@ -34,40 +38,45 @@
   color: var(--dash-faint);
 }
 
-.main-panel:has(.dashboard-status-row) .clock-block strong,
-.main-panel:has(.dashboard-status-row) .user-chip.active {
-  color: var(--dash-text);
+.main-panel:has(.dashboard-status-row) .clock-block strong {
+  color: var(--dash-soft);
+  font-family: var(--dash-mono);
+  font-weight: 560;
+  letter-spacing: .015em;
 }
 
 .main-panel:has(.dashboard-status-row) .user-chip.active {
-  background: rgba(255,255,255,.06);
+  background: rgba(247,244,237,.58);
   border-color: var(--dash-line);
-  box-shadow: none;
+  color: var(--dash-text);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.45);
 }
 
 .main-panel:has(.dashboard-status-row) .primary-button {
-  border-color: rgba(255,255,255,.16);
-  background: rgba(255,255,255,.11);
+  border-color: rgba(99, 94, 82, .16);
+  background: rgba(112, 106, 92, .10);
   color: var(--dash-text);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.08);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.46);
+  font-family: var(--dash-mono);
+  font-weight: 560;
 }
 
 .main-panel:has(.dashboard-status-row) .primary-button:hover:not(:disabled) {
-  background: rgba(255,255,255,.16);
+  background: rgba(112, 106, 92, .16);
 }
 
 .page-content:has(.dashboard-status-row) {
   color: var(--dash-text);
 }
 
-/* Android-like restraint: the landing page is date + the two task spaces. */
+/* Keep the landing page quiet: date + the two task spaces. */
 .page-content:has(.dashboard-status-row) .dashboard-status-row {
   display: none;
 }
 
 .page-content:has(.dashboard-status-row) .page-heading {
   min-height: auto;
-  margin: .2rem 0 1.15rem;
+  margin: .15rem 0 1.05rem;
   align-items: center;
 }
 
@@ -79,10 +88,11 @@
 .page-content:has(.dashboard-status-row) .page-heading h2 {
   margin: 0;
   color: var(--dash-text);
-  font-size: clamp(1.45rem, 1.7vw, 2rem);
-  line-height: 1.15;
-  font-weight: 590;
-  letter-spacing: -.04em;
+  font-family: var(--dash-mono);
+  font-size: clamp(1.32rem, 1.55vw, 1.82rem);
+  line-height: 1.2;
+  font-weight: 560;
+  letter-spacing: -.025em;
 }
 
 .page-content:has(.dashboard-status-row) .split-board {
@@ -93,18 +103,21 @@
   min-width: 0;
   padding: 1rem;
   border: 1px solid var(--dash-line);
-  border-radius: 1.25rem;
+  border-radius: 1.18rem;
   background: var(--dash-panel);
-  background-image: none;
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.035);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
+  background-image:
+    linear-gradient(145deg, rgba(255,255,255,.25), transparent 42%),
+    radial-gradient(circle at 20% 20%, rgba(105,98,82,.018) 0 .7px, transparent .8px);
+  background-size: 100% 100%, 1.7rem 1.7rem;
+  box-shadow: 0 .7rem 2.4rem rgba(88,78,59,.035), inset 0 1px 0 rgba(255,255,255,.52);
+  backdrop-filter: blur(11px) saturate(102%);
+  -webkit-backdrop-filter: blur(11px) saturate(102%);
 }
 
 .page-content:has(.dashboard-status-row) .column-header {
   z-index: 4;
   min-height: 4rem;
-  padding: .15rem .15rem .85rem;
+  padding: .15rem .15rem .82rem;
   border-bottom: 1px solid var(--dash-line);
   background: transparent;
   color: var(--dash-text);
@@ -113,8 +126,10 @@
 .page-content:has(.dashboard-status-row) .partner-title h3 {
   margin-top: .18rem;
   color: var(--dash-text);
-  font-size: 1.02rem;
-  font-weight: 610;
+  font-family: var(--dash-mono);
+  font-size: 1rem;
+  font-weight: 580;
+  letter-spacing: -.015em;
 }
 
 .page-content:has(.dashboard-status-row) .partner-title > div > span,
@@ -124,58 +139,63 @@
 
 .page-content:has(.dashboard-status-row) .column-stat strong {
   color: var(--dash-soft);
-  font-weight: 590;
+  font-family: var(--dash-mono);
+  font-weight: 560;
 }
 
 .page-content:has(.dashboard-status-row) .avatar.large {
-  background: rgba(255,255,255,.09);
-  color: var(--dash-text);
+  background: rgba(241,237,227,.76);
+  color: var(--dash-soft);
   border: 1px solid var(--dash-line);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.44);
 }
 
 .page-content:has(.dashboard-status-row) .quick-add {
-  min-height: 2.7rem;
-  margin: .75rem 0;
+  min-height: 2.62rem;
+  margin: .72rem 0;
   border: 1px solid var(--dash-line);
-  border-radius: .8rem;
-  background: rgba(255,255,255,.025);
+  border-radius: .78rem;
+  background: rgba(248,246,240,.36);
   color: var(--dash-soft);
-  font-size: .76rem;
+  font-family: var(--dash-mono);
+  font-size: .72rem;
   font-weight: 520;
 }
 
 .page-content:has(.dashboard-status-row) .quick-add:hover {
-  background: rgba(255,255,255,.06);
+  background: rgba(248,246,240,.66);
   border-color: var(--dash-line-strong);
   color: var(--dash-text);
 }
 
 .page-content:has(.dashboard-status-row) .task-list {
-  gap: .62rem;
+  gap: .58rem;
 }
 
 .page-content:has(.dashboard-status-row) .task-card {
-  padding: 1rem 1rem .78rem;
+  padding: .96rem .98rem .76rem;
   border: 1px solid var(--dash-line);
-  border-left: 1px solid var(--dash-line);
-  border-radius: 1rem;
+  border-left: 2px solid rgba(119,128,116,.20);
+  border-radius: .95rem;
   background: var(--dash-task);
   color: var(--dash-text);
-  box-shadow: none;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.48);
 }
 
 .page-content:has(.dashboard-status-row) .task-card:hover {
   transform: none;
   background: var(--dash-task-hover);
   border-color: var(--dash-line-strong);
-  box-shadow: none;
+  box-shadow: 0 .5rem 1.4rem rgba(82,74,58,.04), inset 0 1px 0 rgba(255,255,255,.55);
 }
 
 .page-content:has(.dashboard-status-row) .task-copy h4 {
   color: var(--dash-text);
-  font-size: .98rem;
+  font-family: var(--dash-mono);
+  font-size: .93rem;
   font-weight: 560;
-  line-height: 1.36;
+  line-height: 1.42;
+  letter-spacing: -.012em;
 }
 
 .page-content:has(.dashboard-status-row) .task-copy p,
@@ -185,43 +205,54 @@
   color: var(--dash-soft);
 }
 
+.page-content:has(.dashboard-status-row) .task-meta,
+.page-content:has(.dashboard-status-row) .carry-note {
+  font-size: .64rem;
+}
+
 .page-content:has(.dashboard-status-row) .task-menu button,
 .page-content:has(.dashboard-status-row) .thread-button {
   background: transparent;
   border-color: var(--dash-line);
   color: var(--dash-soft);
+  font-family: var(--dash-mono);
+  font-weight: 520;
 }
 
 .page-content:has(.dashboard-status-row) .task-menu button:hover:not(:disabled),
 .page-content:has(.dashboard-status-row) .thread-button:hover {
   color: var(--dash-text);
-  background: rgba(255,255,255,.05);
+  background: rgba(105,98,82,.05);
 }
 
 .page-content:has(.dashboard-status-row) .complete-control {
-  background: transparent;
-  border-color: rgba(255,255,255,.26);
+  background: rgba(248,246,240,.34);
+  border-color: rgba(100,96,84,.20);
   color: var(--dash-text);
 }
 
 .page-content:has(.dashboard-status-row) .status-pill,
 .page-content:has(.dashboard-status-row) .priority-pill {
   border-color: transparent;
-  background: rgba(255,255,255,.06);
+  background: rgba(112,105,90,.055);
   color: var(--dash-soft);
 }
 
 .page-content:has(.dashboard-status-row) .task-card.state-completed {
-  background: rgba(112,158,129,.085);
+  background: rgba(231,237,230,.68);
+  border-left-color: rgba(112,137,116,.30);
 }
 .page-content:has(.dashboard-status-row) .task-card.state-overdue {
-  background: rgba(183,92,92,.085);
+  background: rgba(241,230,226,.58);
+  border-left-color: rgba(153,101,94,.28);
 }
 .page-content:has(.dashboard-status-row) .task-card.state-carried {
-  background: rgba(166,132,71,.085);
+  background: rgba(240,234,220,.68);
+  border-left-color: rgba(151,126,83,.27);
 }
 .page-content:has(.dashboard-status-row) .task-card.state-future {
-  background: rgba(102,139,160,.08);
+  background: rgba(229,235,236,.62);
+  border-left-color: rgba(101,128,136,.25);
 }
 
 .page-content:has(.dashboard-status-row) .empty-state {
@@ -230,6 +261,8 @@
 }
 .page-content:has(.dashboard-status-row) .empty-state strong {
   color: var(--dash-soft);
+  font-family: var(--dash-mono);
+  font-weight: 560;
 }
 
 /* Desktop/laptop: fixed canvas, independent partner scrolling. */
@@ -247,7 +280,7 @@
     height: calc(100dvh - 4.5714rem);
     min-height: 0;
     max-width: 118rem;
-    padding: 1.45rem 1.7rem 1.7rem;
+    padding: 1.4rem 1.7rem 1.65rem;
     display: grid;
     grid-template-rows: auto minmax(0, 1fr);
     overflow: hidden;
@@ -267,7 +300,7 @@
     overscroll-behavior: contain;
     scrollbar-gutter: stable;
     scrollbar-width: thin;
-    scrollbar-color: rgba(255,255,255,.22) transparent;
+    scrollbar-color: rgba(105,99,86,.24) transparent;
   }
 
   .page-content:has(.dashboard-status-row) .notepad-column::-webkit-scrollbar {
@@ -278,33 +311,32 @@
   }
   .page-content:has(.dashboard-status-row) .notepad-column::-webkit-scrollbar-thumb {
     border-radius: 99rem;
-    background: rgba(255,255,255,.2);
+    background: rgba(105,99,86,.20);
   }
 
   .page-content:has(.dashboard-status-row) .column-header {
     position: sticky;
     top: -1rem;
     margin: -1rem -1rem 0;
-    padding: 1.15rem 1.15rem .9rem;
+    padding: 1.12rem 1.12rem .88rem;
     background: var(--dash-panel-strong);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(14px) saturate(102%);
+    -webkit-backdrop-filter: blur(14px) saturate(102%);
   }
 
-  /* Larger screens get breathing room instead of phone-density scaling. */
   @media (min-width: 1280px) {
-    .page-content:has(.dashboard-status-row) .split-board { gap: 1.25rem; }
-    .page-content:has(.dashboard-status-row) .notepad-column { padding: 1.15rem; }
+    .page-content:has(.dashboard-status-row) .split-board { gap: 1.2rem; }
+    .page-content:has(.dashboard-status-row) .notepad-column { padding: 1.12rem; }
     .page-content:has(.dashboard-status-row) .column-header {
-      top: -1.15rem;
-      margin: -1.15rem -1.15rem 0;
-      padding: 1.3rem 1.3rem 1rem;
+      top: -1.12rem;
+      margin: -1.12rem -1.12rem 0;
+      padding: 1.25rem 1.25rem .95rem;
     }
-    .page-content:has(.dashboard-status-row) .task-card { padding: 1.08rem 1.08rem .84rem; }
+    .page-content:has(.dashboard-status-row) .task-card { padding: 1.04rem 1.06rem .82rem; }
   }
 }
 
-/* The website may still be opened on a phone; keep its existing responsive flow. */
+/* If the website is opened on a phone, keep the current responsive flow. */
 @media (max-width: 760px) {
   .main-panel:has(.dashboard-status-row) {
     background: var(--dash-bg);
@@ -327,6 +359,6 @@
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
   }
-  .page-content:has(.dashboard-status-row) .notepad-column { background: #171717; }
-  .page-content:has(.dashboard-status-row) .task-card { background: #202020; }
+  .page-content:has(.dashboard-status-row) .notepad-column { background: #eeeadf; }
+  .page-content:has(.dashboard-status-row) .task-card { background: #f4f1e8; }
 }
