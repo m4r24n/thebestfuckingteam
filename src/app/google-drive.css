@@ -1,0 +1,89 @@
+.google-drive-card {
+  min-width: 0;
+}
+
+.google-drive-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.google-drive-heading h3 {
+  margin: .25rem 0 .35rem;
+}
+
+.google-drive-heading p {
+  margin: 0;
+  max-width: 46rem;
+  color: var(--text-soft);
+}
+
+.drive-status {
+  flex: 0 0 auto;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: .35rem .6rem;
+  color: var(--text-soft);
+  font-size: .68rem;
+  font-weight: 700;
+}
+
+.drive-status.connected {
+  border-color: rgba(82, 117, 78, .28);
+  background: rgba(82, 117, 78, .08);
+}
+
+.google-drive-connection {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: .7rem;
+  margin: 1rem 0;
+}
+
+.google-drive-connection > div {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: .75rem;
+  padding: .75rem;
+}
+
+.google-drive-connection span,
+.google-drive-connection strong {
+  display: block;
+}
+
+.google-drive-connection span {
+  margin-bottom: .2rem;
+  color: var(--text-soft);
+  font-size: .68rem;
+}
+
+.google-drive-connection strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: .82rem;
+}
+
+.google-drive-message {
+  margin: .8rem 0;
+  border-left: 2px solid var(--theme-accent);
+  padding: .45rem .65rem;
+  color: var(--text-soft);
+  font-size: .75rem;
+}
+
+.google-drive-actions {
+  flex-wrap: wrap;
+}
+
+@media (max-width: 640px) {
+  .google-drive-heading {
+    display: grid;
+  }
+
+  .google-drive-connection {
+    grid-template-columns: 1fr;
+  }
+}
