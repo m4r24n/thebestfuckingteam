@@ -1,7 +1,7 @@
 import TBFTApp from "@/components/TBFTApp";
 import RecurringTaskEnhancer from "@/components/RecurringTaskEnhancer";
 import ArchivePermanentDeleteControls from "@/components/ArchivePermanentDeleteControls";
-import ProjectWorkspaceEnhancer from "@/components/ProjectWorkspaceEnhancer";
+import ProjectWorkspaceEnhancerHost from "@/components/ProjectWorkspaceEnhancerHost";
 
 export default function Home() {
   return (
@@ -9,7 +9,7 @@ export default function Home() {
       <TBFTApp />
       <RecurringTaskEnhancer />
       <ArchivePermanentDeleteControls />
-      <ProjectWorkspaceEnhancer />
+      <ProjectWorkspaceEnhancerHost />
     </>
   );
 }
