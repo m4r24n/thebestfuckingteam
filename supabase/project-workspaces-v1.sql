@@ -15,15 +15,15 @@ create table if not exists public.project_file_spaces (
   created_by uuid not null references public.profiles(id),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  unique (project_id, task_id),
   check ((kind = 'project' and task_id is null) or (kind = 'task' and task_id is not null))
 );
 
--- PostgreSQL treats NULLs as distinct in a normal unique constraint, so enforce one root space per project explicitly.
 create unique index if not exists project_file_spaces_one_project_root
   on public.project_file_spaces(project_id)
   where task_id is null;
-
+create unique index if not exists project_file_spaces_one_task_space
+  on public.project_file_spaces(task_id)
+  where task_id is not null;
 create index if not exists project_file_spaces_workspace_idx
   on public.project_file_spaces(workspace_id, project_id);
 
@@ -52,11 +52,12 @@ create index if not exists project_files_task_idx
   on public.project_files(task_id, created_at desc)
   where deleted_at is null;
 
+drop trigger if exists project_file_spaces_set_updated_at on public.project_file_spaces;
 create trigger project_file_spaces_set_updated_at
 before update on public.project_file_spaces
 for each row execute function public.set_updated_at();
 
-create or replace function public.ensure_project_file_space()
+create or replace function public.sync_project_file_space()
 returns trigger
 language plpgsql
 security definer set search_path = public
@@ -66,17 +67,23 @@ begin
     workspace_id, project_id, task_id, kind, label, created_by
   ) values (
     new.workspace_id, new.id, null, 'project', new.name, new.created_by
-  ) on conflict do nothing;
+  )
+  on conflict (project_id) where task_id is null
+  do update set
+    workspace_id = excluded.workspace_id,
+    label = excluded.label,
+    updated_at = now();
   return new;
 end;
 $$;
 
 drop trigger if exists projects_create_file_space on public.projects;
-create trigger projects_create_file_space
-after insert on public.projects
-for each row execute function public.ensure_project_file_space();
+drop trigger if exists projects_sync_file_space on public.projects;
+create trigger projects_sync_file_space
+after insert or update of name on public.projects
+for each row execute function public.sync_project_file_space();
 
-create or replace function public.ensure_task_file_space()
+create or replace function public.sync_task_file_space()
 returns trigger
 language plpgsql
 security definer set search_path = public
@@ -85,6 +92,7 @@ declare
   project_workspace uuid;
 begin
   if new.project_id is null then
+    delete from public.project_file_spaces where task_id = new.id;
     return new;
   end if;
 
@@ -100,28 +108,37 @@ begin
     workspace_id, project_id, task_id, kind, label, created_by
   ) values (
     new.workspace_id, new.project_id, new.id, 'task', new.title, new.created_by
-  ) on conflict do nothing;
+  )
+  on conflict (task_id) where task_id is not null
+  do update set
+    workspace_id = excluded.workspace_id,
+    project_id = excluded.project_id,
+    label = excluded.label,
+    updated_at = now();
 
   return new;
 end;
 $$;
 
 drop trigger if exists tasks_create_file_space on public.tasks;
-create trigger tasks_create_file_space
-after insert or update of project_id on public.tasks
-for each row execute function public.ensure_task_file_space();
+drop trigger if exists tasks_sync_file_space on public.tasks;
+create trigger tasks_sync_file_space
+after insert or update of project_id, title on public.tasks
+for each row execute function public.sync_task_file_space();
 
 -- Backfill logical folders for projects and project-linked tasks that already exist.
 insert into public.project_file_spaces (workspace_id, project_id, task_id, kind, label, created_by)
 select p.workspace_id, p.id, null, 'project', p.name, p.created_by
 from public.projects p
-on conflict do nothing;
+on conflict (project_id) where task_id is null
+  do update set label = excluded.label, updated_at = now();
 
 insert into public.project_file_spaces (workspace_id, project_id, task_id, kind, label, created_by)
 select t.workspace_id, t.project_id, t.id, 'task', t.title, t.created_by
 from public.tasks t
 where t.project_id is not null
-on conflict do nothing;
+on conflict (task_id) where task_id is not null
+  do update set project_id = excluded.project_id, label = excluded.label, updated_at = now();
 
 alter table public.project_file_spaces enable row level security;
 alter table public.project_files enable row level security;
@@ -144,6 +161,12 @@ on public.project_file_spaces for update
 to authenticated
 using (public.is_workspace_member(workspace_id))
 with check (public.is_workspace_member(workspace_id));
+
+drop policy if exists "members delete project file spaces" on public.project_file_spaces;
+create policy "members delete project file spaces"
+on public.project_file_spaces for delete
+to authenticated
+using (public.is_workspace_member(workspace_id));
 
 drop policy if exists "members read project files" on public.project_files;
 create policy "members read project files"
@@ -233,5 +256,5 @@ using (
   )
 );
 
-grant select, insert, update on public.project_file_spaces to authenticated;
+grant select, insert, update, delete on public.project_file_spaces to authenticated;
 grant select, insert, update on public.project_files to authenticated;
