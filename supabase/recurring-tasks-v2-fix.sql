@@ -58,11 +58,6 @@ begin
       select 1 from public.task_messages message
       where message.task_id = generated.id
         and message.deleted_at is null
-    )
-    and not exists (
-      select 1 from public.project_files file
-      where file.task_id = generated.id
-        and file.deleted_at is null
     );
 
   if new.recurrence_type <> 'none' and new.deleted_at is null then
@@ -143,11 +138,6 @@ begin
         select 1 from public.task_messages message
         where message.task_id = generated.id
           and message.deleted_at is null
-      )
-      and not exists (
-        select 1 from public.project_files file
-        where file.task_id = generated.id
-          and file.deleted_at is null
       );
   end loop;
 end;
