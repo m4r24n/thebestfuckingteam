@@ -44,37 +44,61 @@ begin
 end;
 $$;
 
-create or replace function public.expand_recurring_task_series()
-returns trigger
+create or replace function public.tbft_recurrence_horizon(
+  anchor_date date,
+  recurrence_kind text,
+  interval_days integer default null
+)
+returns date
+language sql
+immutable
+set search_path = public
+as $$
+  select anchor_date + case recurrence_kind
+    when 'daily' then 90
+    when 'weekly' then 365
+    when 'monthly' then 730
+    when 'yearly' then 1825
+    when 'interval' then greatest(90, least(730, coalesce(interval_days, 1) * 20))
+    else 0
+  end;
+$$;
+
+create or replace function public.ensure_recurring_task_horizon(source_task_id uuid, horizon date)
+returns integer
 language plpgsql
 security definer
 set search_path = public
 as $$
 declare
+  source_task public.tasks%rowtype;
   occurrence_date date;
-  horizon date;
   step_no integer := 1;
-  interval_days integer;
+  inserted_count integer := 0;
+  affected integer := 0;
 begin
-  -- Generated occurrences never generate another series.
-  if new.recurrence_source_id is not null or new.recurrence_type = 'none' then
-    return new;
+  select * into source_task
+  from public.tasks
+  where id = source_task_id;
+
+  if source_task.id is null
+     or source_task.deleted_at is not null
+     or source_task.recurrence_source_id is not null
+     or source_task.recurrence_type = 'none' then
+    return 0;
   end if;
 
-  interval_days := coalesce(new.recurrence_interval_days, 1);
-  horizon := new.original_date + 730;
-
   loop
-    occurrence_date := case new.recurrence_type
-      when 'daily' then new.original_date + step_no
-      when 'weekly' then new.original_date + (step_no * 7)
-      when 'interval' then new.original_date + (step_no * interval_days)
-      when 'monthly' then public.tbft_add_months_clamped(new.original_date, step_no)
-      when 'yearly' then public.tbft_add_months_clamped(new.original_date, step_no * 12)
+    occurrence_date := case source_task.recurrence_type
+      when 'daily' then source_task.original_date + step_no
+      when 'weekly' then source_task.original_date + (step_no * 7)
+      when 'interval' then source_task.original_date + (step_no * coalesce(source_task.recurrence_interval_days, 1))
+      when 'monthly' then public.tbft_add_months_clamped(source_task.original_date, step_no)
+      when 'yearly' then public.tbft_add_months_clamped(source_task.original_date, step_no * 12)
       else null
     end;
 
-    exit when occurrence_date is null or occurrence_date > horizon;
+    exit when occurrence_date is null or occurrence_date > horizon or step_no > 5000;
 
     insert into public.tasks (
       workspace_id,
@@ -91,25 +115,47 @@ begin
       recurrence_interval_days,
       recurrence_source_id
     ) values (
-      new.workspace_id,
-      new.title,
-      new.description,
-      new.owner_user_id,
-      new.created_by,
+      source_task.workspace_id,
+      source_task.title,
+      source_task.description,
+      source_task.owner_user_id,
+      source_task.created_by,
       occurrence_date,
-      new.deadline,
-      new.priority,
-      new.project_id,
-      new.project_node_id,
+      source_task.deadline,
+      source_task.priority,
+      source_task.project_id,
+      source_task.project_node_id,
       'none',
       null,
-      new.id
+      source_task.id
     )
     on conflict do nothing;
 
+    get diagnostics affected = row_count;
+    inserted_count := inserted_count + affected;
     step_no := step_no + 1;
   end loop;
 
+  return inserted_count;
+end;
+$$;
+
+create or replace function public.expand_recurring_task_series()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  -- Generated occurrences never generate another series.
+  if new.recurrence_source_id is not null or new.recurrence_type = 'none' then
+    return new;
+  end if;
+
+  perform public.ensure_recurring_task_horizon(
+    new.id,
+    public.tbft_recurrence_horizon(new.original_date, new.recurrence_type, new.recurrence_interval_days)
+  );
   return new;
 end;
 $$;
@@ -201,8 +247,9 @@ create trigger tasks_stop_recurring_series
 after update of deleted_at on public.tasks
 for each row execute function public.stop_recurring_task_series();
 
--- Recurring occurrences are date-specific habits/rituals. They keep historical records,
--- but missed occurrences do not carry forward and stack beside the next occurrence.
+-- The existing rollover RPC now also keeps recurrence windows topped up. Recurring
+-- occurrences are date-specific habits/rituals: a missed Tuesday walk remains in
+-- Tuesday's history and is not carried forward beside Wednesday's walk.
 create or replace function public.repair_workspace_rollovers(target_workspace uuid, target_board_date date)
 returns integer
 language plpgsql
@@ -210,8 +257,11 @@ security definer set search_path = public
 as $$
 declare
   inserted_count integer := 0;
+  recurrence_count integer := 0;
+  carry_count integer := 0;
   workspace_tz text;
   workspace_rollover smallint;
+  recurring_root record;
 begin
   if auth.uid() is null or not public.is_workspace_member(target_workspace) then
     raise exception 'You are not a member of this workspace';
@@ -219,6 +269,24 @@ begin
 
   select timezone, rollover_hour into workspace_tz, workspace_rollover
   from public.workspaces where id = target_workspace;
+
+  for recurring_root in
+    select id, recurrence_type, recurrence_interval_days
+    from public.tasks
+    where workspace_id = target_workspace
+      and deleted_at is null
+      and recurrence_source_id is null
+      and recurrence_type <> 'none'
+  loop
+    recurrence_count := recurrence_count + public.ensure_recurring_task_horizon(
+      recurring_root.id,
+      public.tbft_recurrence_horizon(
+        target_board_date,
+        recurring_root.recurrence_type,
+        recurring_root.recurrence_interval_days
+      )
+    );
+  end loop;
 
   insert into public.task_day_appearances(task_id, board_date, appearance_type)
   select
@@ -244,9 +312,11 @@ begin
     and t.recurrence_source_id is null
   on conflict (task_id, board_date) do nothing;
 
-  get diagnostics inserted_count = row_count;
+  get diagnostics carry_count = row_count;
+  inserted_count := recurrence_count + carry_count;
   return inserted_count;
 end;
 $$;
 
 grant execute on function public.tbft_add_months_clamped(date, integer) to authenticated;
+grant execute on function public.tbft_recurrence_horizon(date, text, integer) to authenticated;
