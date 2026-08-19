@@ -116,8 +116,16 @@ begin
   from public.project_nodes
   where project_id = project_row.id;
 
-  -- Files belonging to the project are part of the permanent deletion. Connected tasks
-  -- themselves survive; their project references become NULL through existing FKs.
+  -- Connected tasks survive project deletion. Move them out first so the file-space
+  -- hierarchy trigger relocates their task folders beneath Fucking Lonely Tasks and
+  -- preserves any task-level files.
+  update public.tasks
+  set project_id = null,
+      project_node_id = null
+  where project_id = project_row.id;
+
+  -- Only files attached directly to the project root belong to the project itself.
+  -- Task-linked files have already followed their surviving tasks into the lonely tree.
   if to_regclass('public.project_files') is not null then
     execute $sql$
       delete from storage.objects object
@@ -126,11 +134,13 @@ begin
         and object.name = file.storage_path
         and file.storage_path is not null
         and file.project_id = $1
+        and file.task_id is null
     $sql$ using project_row.id;
 
     execute $sql$
       delete from public.project_files
       where project_id = $1
+        and task_id is null
     $sql$ using project_row.id;
   end if;
 
