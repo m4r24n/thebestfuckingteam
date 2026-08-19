@@ -98,23 +98,29 @@ export default function ArchivePermanentDeleteControls() {
 
     setBusy(true);
     setError("");
-    const rpcName = confirming.kind === "task"
-      ? "permanently_delete_archived_task"
-      : "permanently_delete_archived_project";
-    const args = confirming.kind === "task"
-      ? { target_task: confirming.item.id }
-      : { target_project: confirming.item.id };
+    try {
+      const { data: session, error: sessionError } = await supabase.auth.getSession();
+      const token = session.session?.access_token;
+      if (sessionError || !token) throw new Error("Your TBFT session expired. Sign in again.");
 
-    const { error: deleteError } = await supabase.rpc(rpcName, args);
-    if (deleteError) {
-      setError(deleteError.message);
+      const response = await fetch("/api/archive/permanent-delete", {
+        method: "POST",
+        headers: {
+          authorization: `Bearer ${token}`,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ kind: confirming.kind, id: confirming.item.id }),
+      });
+      const body = await response.json() as { error?: string };
+      if (!response.ok) throw new Error(body.error ?? "Permanent deletion failed.");
+
+      setConfirming(null);
+      await loadArchived();
+    } catch (deleteError) {
+      setError(deleteError instanceof Error ? deleteError.message : String(deleteError));
+    } finally {
       setBusy(false);
-      return;
     }
-
-    setConfirming(null);
-    setBusy(false);
-    await loadArchived();
   };
 
   if (!target) return null;
@@ -178,7 +184,7 @@ export default function ArchivePermanentDeleteControls() {
             ? confirming.item.recurrence_source_id === null && confirming.item.recurrence_type !== "none"
               ? "This removes the archived recurring series, its generated occurrences, notes, history, and stored task files. This cannot be undone."
               : "This removes the task, its notes, history, and stored task files. This cannot be undone."
-            : "This removes the archived project structure and project files. Connected tasks are kept and become unassigned from the deleted project. This cannot be undone."}
+            : "This removes the archived project structure and project-level files. Connected tasks and their files are kept, moved to Fucking Lonely Tasks, and become unassigned from the deleted project. This cannot be undone."}
         </p>
         {error && <p className="archive-purge-error">{error}</p>}
         <div className="archive-delete-actions">
