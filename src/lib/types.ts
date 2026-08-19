@@ -1,5 +1,6 @@
 export type WorkspaceType = "solo" | "couple";
 export type WorkspaceRole = "owner" | "partner";
+export type StorageProvider = "supabase" | "google_drive" | "onedrive" | "local";
 
 export type UserProfile = {
   id: string;
@@ -26,6 +27,37 @@ export type ProjectNode = {
   id: string;
   title: string;
   position: number;
+};
+
+export type ProjectFileSpace = {
+  id: string;
+  workspaceId: string;
+  projectId: string;
+  taskId?: string;
+  kind: "project" | "task";
+  label: string;
+  provider: StorageProvider;
+  externalFolderId?: string;
+  externalFolderUrl?: string;
+  createdAt: string;
+};
+
+export type ProjectFile = {
+  id: string;
+  workspaceId: string;
+  projectId: string;
+  taskId?: string;
+  fileSpaceId?: string;
+  provider: StorageProvider;
+  storagePath?: string;
+  externalFileId?: string;
+  externalFileUrl?: string;
+  originalName: string;
+  mimeType?: string;
+  sizeBytes?: number;
+  uploadedBy: string;
+  createdAt: string;
+  deletedAt?: string;
 };
 
 export type Project = {
