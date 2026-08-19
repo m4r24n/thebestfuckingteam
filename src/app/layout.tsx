@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import "./dashboard-v2.css";
 import "./recurring-tasks.css";
+import "./archive-permanent-delete.css";
 
 export const metadata: Metadata = {
   title: "The Best Fucking Team",
