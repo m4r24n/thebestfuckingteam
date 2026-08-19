@@ -1,7 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { ProjectFile, ProjectFileSpace } from "@/lib/types";
-
-const BUCKET = "tbft-files";
+import type { ProjectFile, ProjectFileSpace, StorageProvider } from "@/lib/types";
+import { getStorageProvider } from "@/lib/storageProviders";
 
 function safeFileName(name: string): string {
   const cleaned = name
@@ -98,11 +97,12 @@ export async function uploadProjectFile(
     taskId?: string;
     userId: string;
     file: File;
+    provider?: StorageProvider;
   },
 ): Promise<ProjectFile> {
   const spaceQuery = supabase
     .from("project_file_spaces")
-    .select("id")
+    .select("id, provider")
     .eq("project_id", input.projectId);
 
   const scopedQuery = input.taskId
@@ -113,19 +113,16 @@ export async function uploadProjectFile(
   if (spaceError) throw new Error(spaceError.message);
   if (!space) throw new Error("This project workspace is not initialized yet. Run the TBFT project-workspaces migration first.");
 
-  const path = storagePath({
+  const provider = input.provider ?? (space.provider as StorageProvider) ?? "supabase";
+  const adapter = getStorageProvider(supabase, provider);
+  const proposedPath = storagePath({
     workspaceId: input.workspaceId,
     projectId: input.projectId,
     taskId: input.taskId,
     fileName: input.file.name,
   });
 
-  const { error: uploadError } = await supabase.storage.from(BUCKET).upload(path, input.file, {
-    upsert: false,
-    contentType: input.file.type || undefined,
-    cacheControl: "3600",
-  });
-  if (uploadError) throw new Error(uploadError.message);
+  const stored = await adapter.upload({ path: proposedPath, file: input.file });
 
   const { data: inserted, error: metadataError } = await supabase
     .from("project_files")
@@ -134,8 +131,10 @@ export async function uploadProjectFile(
       project_id: input.projectId,
       task_id: input.taskId ?? null,
       file_space_id: space.id,
-      provider: "supabase",
-      storage_path: path,
+      provider,
+      storage_path: stored.storagePath ?? null,
+      external_file_id: stored.externalFileId ?? null,
+      external_file_url: stored.externalFileUrl ?? null,
       original_name: input.file.name,
       mime_type: input.file.type || null,
       size_bytes: input.file.size,
@@ -145,7 +144,22 @@ export async function uploadProjectFile(
     .single();
 
   if (metadataError || !inserted) {
-    await supabase.storage.from(BUCKET).remove([path]);
+    await adapter.remove({
+      id: "pending",
+      workspaceId: input.workspaceId,
+      projectId: input.projectId,
+      taskId: input.taskId,
+      fileSpaceId: space.id as string,
+      provider,
+      storagePath: stored.storagePath,
+      externalFileId: stored.externalFileId,
+      externalFileUrl: stored.externalFileUrl,
+      originalName: input.file.name,
+      mimeType: input.file.type || undefined,
+      sizeBytes: input.file.size,
+      uploadedBy: input.userId,
+      createdAt: new Date().toISOString(),
+    }).catch(() => undefined);
     throw new Error(metadataError?.message ?? "File metadata could not be saved.");
   }
 
@@ -159,6 +173,7 @@ export async function uploadProjectFile(
     metadata: {
       projectId: input.projectId,
       taskId: input.taskId ?? null,
+      provider,
       sizeBytes: input.file.size,
       mimeType: input.file.type || null,
     },
@@ -172,17 +187,7 @@ export async function createProjectFileUrl(
   file: ProjectFile,
   expiresInSeconds = 300,
 ): Promise<string> {
-  if (file.provider !== "supabase") {
-    if (file.externalFileUrl) return file.externalFileUrl;
-    throw new Error("This external file does not have an openable URL yet.");
-  }
-  if (!file.storagePath) throw new Error("File storage path is missing.");
-
-  const { data, error } = await supabase.storage
-    .from(BUCKET)
-    .createSignedUrl(file.storagePath, expiresInSeconds);
-  if (error || !data?.signedUrl) throw new Error(error?.message ?? "Could not open this file.");
-  return data.signedUrl;
+  return getStorageProvider(supabase, file.provider).createOpenUrl(file, expiresInSeconds);
 }
 
 export async function deleteProjectFile(
@@ -190,10 +195,7 @@ export async function deleteProjectFile(
   file: ProjectFile,
   userId: string,
 ): Promise<void> {
-  if (file.provider === "supabase" && file.storagePath) {
-    const { error: removeError } = await supabase.storage.from(BUCKET).remove([file.storagePath]);
-    if (removeError) throw new Error(removeError.message);
-  }
+  await getStorageProvider(supabase, file.provider).remove(file);
 
   const { error } = await supabase
     .from("project_files")
@@ -208,6 +210,6 @@ export async function deleteProjectFile(
     entity_id: file.id,
     action: "deleted",
     summary: `removed “${file.originalName}”.`,
-    metadata: { projectId: file.projectId, taskId: file.taskId ?? null },
+    metadata: { projectId: file.projectId, taskId: file.taskId ?? null, provider: file.provider },
   });
 }
