@@ -32,9 +32,10 @@ export type ProjectNode = {
 export type ProjectFileSpace = {
   id: string;
   workspaceId: string;
-  projectId: string;
+  projectId?: string;
   taskId?: string;
-  kind: "project" | "task";
+  parentSpaceId?: string;
+  kind: "project" | "lonely_root" | "task";
   label: string;
   provider: StorageProvider;
   externalFolderId?: string;
@@ -45,7 +46,7 @@ export type ProjectFileSpace = {
 export type ProjectFile = {
   id: string;
   workspaceId: string;
-  projectId: string;
+  projectId?: string;
   taskId?: string;
   fileSpaceId?: string;
   provider: StorageProvider;
