@@ -58,42 +58,45 @@ export default function ProjectArchiveVisibilityGuard() {
         if (error || cancelled) return;
 
         const rows = (data ?? []) as ProjectRow[];
-        const rowsByName = new Map<string, ProjectRow[]>();
-        for (const row of rows) {
-          const group = rowsByName.get(row.name) ?? [];
+        const activeRows = rows.filter((row) => !row.deleted_at);
+        const activeByName = new Map<string, ProjectRow[]>();
+        for (const row of activeRows) {
+          const group = activeByName.get(row.name) ?? [];
           group.push(row);
-          rowsByName.set(row.name, group);
+          activeByName.set(row.name, group);
         }
 
-        // Project buttons are rendered in the same creation order as the project query.
-        // Matching same-name occurrences by ordinal keeps duplicate project names safe.
+        // React normally renders only active projects. During an archive refresh it can
+        // temporarily contain one stale extra button, so anything beyond the active DB
+        // count for that name is hidden immediately.
         const seenByName = new Map<string, number>();
         const buttons = Array.from(panel.querySelectorAll<HTMLButtonElement>(".project-list-item"));
         for (const button of buttons) {
           const name = button.querySelector("strong")?.textContent?.trim() ?? "";
           const occurrence = seenByName.get(name) ?? 0;
           seenByName.set(name, occurrence + 1);
-          const row = rowsByName.get(name)?.[occurrence];
-          const active = Boolean(row && !row.deleted_at);
+          const row = activeByName.get(name)?.[occurrence];
+          const active = Boolean(row);
           button.hidden = !active;
           button.setAttribute("aria-hidden", active ? "false" : "true");
           if (row) button.dataset.projectId = row.id;
+          else delete button.dataset.projectId;
         }
 
         const workspace = document.querySelector<HTMLElement>(".project-workspace");
         if (workspace) {
           const visibleName = workspace.querySelector<HTMLElement>(".project-identity h3")?.textContent?.trim() ?? "";
           const visibleDescription = workspace.querySelector<HTMLElement>(".project-identity p")?.textContent?.trim() ?? "";
-          const candidates = rowsByName.get(visibleName) ?? [];
           const normalizedDescription = visibleDescription === "No description yet." ? "" : visibleDescription;
-          const matching = candidates.find((row) => (row.description ?? "").trim() === normalizedDescription.trim())
-            ?? candidates.find((row) => !row.deleted_at);
+          const candidates = activeByName.get(visibleName) ?? [];
+          const matchingActive = candidates.find((row) => (row.description ?? "").trim() === normalizedDescription.trim())
+            ?? candidates[0];
 
-          const workspaceIsArchived = Boolean(matching?.deleted_at);
+          const workspaceIsArchived = !matchingActive;
           workspace.hidden = workspaceIsArchived;
 
           if (workspaceIsArchived) {
-            const next = buttons.find((button) => !button.hidden && !button.classList.contains("active"));
+            const next = buttons.find((button) => !button.hidden);
             next?.click();
           }
         }
