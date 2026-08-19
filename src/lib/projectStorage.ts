@@ -117,6 +117,17 @@ export async function listTaskFiles(
   return (data ?? []).map((row) => mapFile(row as Record<string, unknown>));
 }
 
+async function resolveProvider(
+  supabase: SupabaseClient,
+  workspaceId: string,
+  requested: StorageProvider,
+): Promise<StorageProvider> {
+  if (requested !== "supabase") return requested;
+  const { data } = await supabase.rpc("storage_connection_status", { target_workspace: workspaceId });
+  if (Array.isArray(data) && data.some((row) => row.provider === "google_drive")) return "google_drive";
+  return requested;
+}
+
 export async function uploadProjectFile(
   supabase: SupabaseClient,
   input: {
@@ -151,7 +162,11 @@ export async function uploadProjectFile(
 
   const resolvedProjectId = (space.project_id as string | null) ?? undefined;
   const resolvedTaskId = (space.task_id as string | null) ?? input.taskId;
-  const provider = input.provider ?? (space.provider as StorageProvider) ?? "supabase";
+  const provider = await resolveProvider(
+    supabase,
+    input.workspaceId,
+    input.provider ?? (space.provider as StorageProvider) ?? "supabase",
+  );
   const adapter = getStorageProvider(supabase, provider);
 
   const stored = await adapter.upload({
