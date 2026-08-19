@@ -45,6 +45,16 @@ export async function GET(request: Request) {
     const root = await ensureGoogleDriveRoot(tokens.accessToken, state.workspaceId, previous?.root_folder_id ?? null);
 
     if (previous?.root_folder_id && previous.root_folder_id !== root.id) {
+      const { count } = await admin
+        .from("project_files")
+        .select("id", { count: "exact", head: true })
+        .eq("workspace_id", state.workspaceId)
+        .eq("provider", "google_drive")
+        .is("deleted_at", null);
+      if ((count ?? 0) > 0) {
+        throw new Error("This workspace already has Google Drive files in another TBFT root. Reconnect the Google account that can access the existing TBFT folder, or share that existing TBFT folder with this Google account before reconnecting.");
+      }
+
       await admin
         .from("project_file_spaces")
         .update({ external_folder_id: null, external_folder_url: null })
