@@ -116,7 +116,7 @@ $$;
 
 drop trigger if exists tasks_expand_recurring_series on public.tasks;
 create trigger tasks_expand_recurring_series
-after insert on public.tasks
+after insert or update of recurrence_type, recurrence_interval_days on public.tasks
 for each row execute function public.expand_recurring_task_series();
 
 -- Keep future generated occurrences aligned when the recurring root is edited.
