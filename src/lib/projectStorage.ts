@@ -13,23 +13,34 @@ function safeFileName(name: string): string {
 
 function storagePath(input: {
   workspaceId: string;
-  projectId: string;
+  projectId?: string;
   taskId?: string;
   fileName: string;
 }): string {
-  const scope = input.taskId ? `tasks/${input.taskId}` : "project";
+  let scope: string;
+  if (input.taskId) {
+    scope = input.projectId
+      ? `projects/${input.projectId}/tasks/${input.taskId}`
+      : `lonely/tasks/${input.taskId}`;
+  } else if (input.projectId) {
+    scope = `projects/${input.projectId}/project`;
+  } else {
+    throw new Error("A file must belong to a project or task workspace.");
+  }
+
   const unique = typeof crypto !== "undefined" && "randomUUID" in crypto
     ? crypto.randomUUID()
     : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
-  return `${input.workspaceId}/projects/${input.projectId}/${scope}/${unique}-${safeFileName(input.fileName)}`;
+  return `${input.workspaceId}/${scope}/${unique}-${safeFileName(input.fileName)}`;
 }
 
 function mapSpace(row: Record<string, unknown>): ProjectFileSpace {
   return {
     id: row.id as string,
     workspaceId: row.workspace_id as string,
-    projectId: row.project_id as string,
+    projectId: (row.project_id as string | null) ?? undefined,
     taskId: (row.task_id as string | null) ?? undefined,
+    parentSpaceId: (row.parent_space_id as string | null) ?? undefined,
     kind: row.kind as ProjectFileSpace["kind"],
     label: row.label as string,
     provider: row.provider as ProjectFileSpace["provider"],
@@ -43,7 +54,7 @@ function mapFile(row: Record<string, unknown>): ProjectFile {
   return {
     id: row.id as string,
     workspaceId: row.workspace_id as string,
-    projectId: row.project_id as string,
+    projectId: (row.project_id as string | null) ?? undefined,
     taskId: (row.task_id as string | null) ?? undefined,
     fileSpaceId: (row.file_space_id as string | null) ?? undefined,
     provider: row.provider as ProjectFile["provider"],
@@ -59,13 +70,16 @@ function mapFile(row: Record<string, unknown>): ProjectFile {
   };
 }
 
+const FILE_SPACE_SELECT = "id, workspace_id, project_id, task_id, parent_space_id, kind, label, provider, external_folder_id, external_folder_url, created_at";
+const FILE_SELECT = "id, workspace_id, project_id, task_id, file_space_id, provider, storage_path, external_file_id, external_file_url, original_name, mime_type, size_bytes, uploaded_by, created_at, deleted_at";
+
 export async function listProjectFileSpaces(
   supabase: SupabaseClient,
   projectId: string,
 ): Promise<ProjectFileSpace[]> {
   const { data, error } = await supabase
     .from("project_file_spaces")
-    .select("id, workspace_id, project_id, task_id, kind, label, provider, external_folder_id, external_folder_url, created_at")
+    .select(FILE_SPACE_SELECT)
     .eq("project_id", projectId)
     .order("kind", { ascending: true })
     .order("created_at", { ascending: true });
@@ -74,14 +88,60 @@ export async function listProjectFileSpaces(
   return (data ?? []).map((row) => mapSpace(row as Record<string, unknown>));
 }
 
+export async function listLonelyTaskFileSpaces(
+  supabase: SupabaseClient,
+  workspaceId: string,
+): Promise<ProjectFileSpace[]> {
+  const { data, error } = await supabase
+    .from("project_file_spaces")
+    .select(FILE_SPACE_SELECT)
+    .eq("workspace_id", workspaceId)
+    .is("project_id", null)
+    .in("kind", ["lonely_root", "task"])
+    .order("kind", { ascending: true })
+    .order("created_at", { ascending: true });
+
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((row) => mapSpace(row as Record<string, unknown>));
+}
+
+export async function getTaskFileSpace(
+  supabase: SupabaseClient,
+  taskId: string,
+): Promise<ProjectFileSpace | null> {
+  const { data, error } = await supabase
+    .from("project_file_spaces")
+    .select(FILE_SPACE_SELECT)
+    .eq("task_id", taskId)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  return data ? mapSpace(data as Record<string, unknown>) : null;
+}
+
 export async function listProjectFiles(
   supabase: SupabaseClient,
   projectId: string,
 ): Promise<ProjectFile[]> {
   const { data, error } = await supabase
     .from("project_files")
-    .select("id, workspace_id, project_id, task_id, file_space_id, provider, storage_path, external_file_id, external_file_url, original_name, mime_type, size_bytes, uploaded_by, created_at, deleted_at")
+    .select(FILE_SELECT)
     .eq("project_id", projectId)
+    .is("deleted_at", null)
+    .order("created_at", { ascending: false });
+
+  if (error) throw new Error(error.message);
+  return (data ?? []).map((row) => mapFile(row as Record<string, unknown>));
+}
+
+export async function listTaskFiles(
+  supabase: SupabaseClient,
+  taskId: string,
+): Promise<ProjectFile[]> {
+  const { data, error } = await supabase
+    .from("project_files")
+    .select(FILE_SELECT)
+    .eq("task_id", taskId)
     .is("deleted_at", null)
     .order("created_at", { ascending: false });
 
@@ -93,32 +153,42 @@ export async function uploadProjectFile(
   supabase: SupabaseClient,
   input: {
     workspaceId: string;
-    projectId: string;
+    projectId?: string;
     taskId?: string;
     userId: string;
     file: File;
     provider?: StorageProvider;
   },
 ): Promise<ProjectFile> {
-  const spaceQuery = supabase
+  if (!input.projectId && !input.taskId) {
+    throw new Error("Choose a project or task folder before uploading a file.");
+  }
+
+  let spaceQuery = supabase
     .from("project_file_spaces")
-    .select("id, provider")
-    .eq("project_id", input.projectId);
+    .select("id, provider, project_id, task_id, kind");
 
-  const scopedQuery = input.taskId
-    ? spaceQuery.eq("task_id", input.taskId)
-    : spaceQuery.is("task_id", null);
+  if (input.taskId) {
+    spaceQuery = spaceQuery.eq("task_id", input.taskId);
+  } else {
+    spaceQuery = spaceQuery
+      .eq("project_id", input.projectId as string)
+      .eq("kind", "project")
+      .is("task_id", null);
+  }
 
-  const { data: space, error: spaceError } = await scopedQuery.maybeSingle();
+  const { data: space, error: spaceError } = await spaceQuery.maybeSingle();
   if (spaceError) throw new Error(spaceError.message);
-  if (!space) throw new Error("This project workspace is not initialized yet. Run the TBFT project-workspaces migration first.");
+  if (!space) throw new Error("This file workspace is not initialized yet. Run the latest TBFT file-space migration first.");
 
+  const resolvedProjectId = (space.project_id as string | null) ?? undefined;
+  const resolvedTaskId = (space.task_id as string | null) ?? input.taskId;
   const provider = input.provider ?? (space.provider as StorageProvider) ?? "supabase";
   const adapter = getStorageProvider(supabase, provider);
   const proposedPath = storagePath({
     workspaceId: input.workspaceId,
-    projectId: input.projectId,
-    taskId: input.taskId,
+    projectId: resolvedProjectId,
+    taskId: resolvedTaskId,
     fileName: input.file.name,
   });
 
@@ -128,8 +198,8 @@ export async function uploadProjectFile(
     .from("project_files")
     .insert({
       workspace_id: input.workspaceId,
-      project_id: input.projectId,
-      task_id: input.taskId ?? null,
+      project_id: resolvedProjectId ?? null,
+      task_id: resolvedTaskId ?? null,
       file_space_id: space.id,
       provider,
       storage_path: stored.storagePath ?? null,
@@ -140,15 +210,15 @@ export async function uploadProjectFile(
       size_bytes: input.file.size,
       uploaded_by: input.userId,
     })
-    .select("id, workspace_id, project_id, task_id, file_space_id, provider, storage_path, external_file_id, external_file_url, original_name, mime_type, size_bytes, uploaded_by, created_at, deleted_at")
+    .select(FILE_SELECT)
     .single();
 
   if (metadataError || !inserted) {
     await adapter.remove({
       id: "pending",
       workspaceId: input.workspaceId,
-      projectId: input.projectId,
-      taskId: input.taskId,
+      projectId: resolvedProjectId,
+      taskId: resolvedTaskId,
       fileSpaceId: space.id as string,
       provider,
       storagePath: stored.storagePath,
@@ -171,8 +241,8 @@ export async function uploadProjectFile(
     action: "uploaded",
     summary: `uploaded “${input.file.name}”.`,
     metadata: {
-      projectId: input.projectId,
-      taskId: input.taskId ?? null,
+      projectId: resolvedProjectId ?? null,
+      taskId: resolvedTaskId ?? null,
       provider,
       sizeBytes: input.file.size,
       mimeType: input.file.type || null,
@@ -210,6 +280,6 @@ export async function deleteProjectFile(
     entity_id: file.id,
     action: "deleted",
     summary: `removed “${file.originalName}”.`,
-    metadata: { projectId: file.projectId, taskId: file.taskId ?? null, provider: file.provider },
+    metadata: { projectId: file.projectId ?? null, taskId: file.taskId ?? null, provider: file.provider },
   });
 }
