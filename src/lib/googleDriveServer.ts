@@ -271,6 +271,56 @@ async function findSpaceFolder(accessToken: string, spaceId: string): Promise<{ 
   return body.files?.[0] ?? null;
 }
 
+async function alignExistingFolder(
+  accessToken: string,
+  folderId: string,
+  desiredName: string,
+  desiredParentId: string,
+): Promise<{ id: string; webViewLink?: string } | null> {
+  try {
+    const response = await driveFetch(
+      accessToken,
+      `/files/${encodeURIComponent(folderId)}?fields=id,name,mimeType,trashed,parents,webViewLink`,
+    );
+    let folder = await response.json() as {
+      id: string;
+      name?: string;
+      mimeType?: string;
+      trashed?: boolean;
+      parents?: string[];
+      webViewLink?: string;
+    };
+    if (folder.mimeType !== FOLDER_MIME || folder.trashed) return null;
+
+    const needsRename = folder.name !== desiredName;
+    const currentParents = folder.parents ?? [];
+    const needsMove = !currentParents.includes(desiredParentId);
+    if (needsRename || needsMove) {
+      const url = new URL(`${DRIVE_API}/files/${encodeURIComponent(folder.id)}`);
+      url.searchParams.set("supportsAllDrives", "true");
+      url.searchParams.set("fields", "id,name,parents,webViewLink");
+      if (needsMove) {
+        url.searchParams.set("addParents", desiredParentId);
+        if (currentParents.length) url.searchParams.set("removeParents", currentParents.join(","));
+      }
+      const update = await fetch(url, {
+        method: "PATCH",
+        headers: {
+          authorization: `Bearer ${accessToken}`,
+          "content-type": "application/json; charset=UTF-8",
+        },
+        body: JSON.stringify(needsRename ? { name: desiredName } : {}),
+      });
+      if (!update.ok) throw new Error(`Google Drive could not align folder ${folder.id} (${update.status}).`);
+      folder = await update.json() as typeof folder;
+    }
+
+    return { id: folder.id, webViewLink: folder.webViewLink };
+  } catch {
+    return null;
+  }
+}
+
 export async function ensureGoogleDriveFolderForSpace(
   admin: SupabaseClient,
   accessToken: string,
@@ -289,17 +339,21 @@ export async function ensureGoogleDriveFolderForSpace(
   if (error || !data) throw new Error(error?.message ?? "TBFT file space was not found.");
   const space = data as FileSpaceRow;
 
-  if (space.external_folder_id) {
-    visiting.delete(spaceId);
-    return space.external_folder_id;
-  }
-
   const parentFolderId = space.parent_space_id
     ? await ensureGoogleDriveFolderForSpace(admin, accessToken, rootFolderId, space.parent_space_id, visiting)
     : rootFolderId;
 
-  const existing = await findSpaceFolder(accessToken, space.id);
-  let folder = existing;
+  let folder = space.external_folder_id
+    ? await alignExistingFolder(accessToken, space.external_folder_id, space.label, parentFolderId)
+    : null;
+
+  if (!folder) {
+    const found = await findSpaceFolder(accessToken, space.id);
+    folder = found
+      ? await alignExistingFolder(accessToken, found.id, space.label, parentFolderId)
+      : null;
+  }
+
   if (!folder) {
     const response = await driveFetch(accessToken, "/files?fields=id,name,webViewLink", {
       method: "POST",
