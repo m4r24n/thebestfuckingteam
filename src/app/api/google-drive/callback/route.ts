@@ -35,7 +35,7 @@ export async function GET(request: Request) {
 
     const { data: previous } = await admin
       .from("storage_connections")
-      .select("root_folder_id")
+      .select("root_folder_id, account_email")
       .eq("workspace_id", state.workspaceId)
       .eq("provider", "google_drive")
       .maybeSingle();
@@ -43,6 +43,13 @@ export async function GET(request: Request) {
     const tokens = await exchangeGoogleCode(code, googleRedirectUri(origin));
     const accountEmail = await googleAccountEmail(tokens.accessToken);
     const root = await ensureGoogleDriveRoot(tokens.accessToken, state.workspaceId, previous?.root_folder_id ?? null);
+
+    if (previous?.root_folder_id && previous.root_folder_id !== root.id) {
+      await admin
+        .from("project_file_spaces")
+        .update({ external_folder_id: null, external_folder_url: null })
+        .eq("workspace_id", state.workspaceId);
+    }
 
     const { error: upsertError } = await admin
       .from("storage_connections")
