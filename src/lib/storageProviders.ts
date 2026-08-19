@@ -16,11 +16,19 @@ export interface StorageProviderAdapter {
 
 export class StorageProviderNotConfiguredError extends Error {
   constructor(provider: StorageProvider) {
-    super(`${provider.replaceAll("_", " ")} storage is not connected yet.`);
+    const label = provider === "supabase"
+      ? "External cloud storage"
+      : provider.replaceAll("_", " ");
+    super(`${label} is not connected yet. TBFT keeps file metadata in Supabase, but new document bytes must be stored in a connected external provider.`);
     this.name = "StorageProviderNotConfiguredError";
   }
 }
 
+/**
+ * Supabase Storage remains readable/removable for files uploaded during the prototype
+ * phase, but TBFT no longer sends NEW document bytes there. Supabase is the metadata
+ * database; real document storage belongs to a connected external provider.
+ */
 class SupabaseStorageProvider implements StorageProviderAdapter {
   readonly id: StorageProvider = "supabase";
 
@@ -29,14 +37,8 @@ class SupabaseStorageProvider implements StorageProviderAdapter {
     private readonly bucket: string,
   ) {}
 
-  async upload({ path, file }: { path: string; file: File }): Promise<StoredObject> {
-    const { error } = await this.supabase.storage.from(this.bucket).upload(path, file, {
-      upsert: false,
-      contentType: file.type || undefined,
-      cacheControl: "3600",
-    });
-    if (error) throw new Error(error.message);
-    return { storagePath: path };
+  async upload(): Promise<StoredObject> {
+    throw new StorageProviderNotConfiguredError("supabase");
   }
 
   async createOpenUrl(file: ProjectFile, expiresInSeconds = 300): Promise<string> {
@@ -82,7 +84,7 @@ export function getStorageProvider(
 
 export function storageProviderLabel(provider: StorageProvider): string {
   return {
-    supabase: "TBFT Cloud",
+    supabase: "No external storage connected",
     google_drive: "Google Drive",
     onedrive: "OneDrive",
     local: "Local storage",
