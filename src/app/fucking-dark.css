@@ -1,0 +1,131 @@
+/* TBFT Fucking Dark — deeper matte rendering of the existing accent palette. */
+
+.fucking-dark-setting {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: .95rem;
+  padding-top: .95rem;
+  border-top: 1px solid rgba(70, 80, 80, .12);
+}
+
+.fucking-dark-setting > div {
+  display: grid;
+  gap: .18rem;
+}
+
+.fucking-dark-setting strong {
+  font-size: .92rem;
+  font-weight: 700;
+}
+
+.fucking-dark-setting span {
+  color: #687274;
+  font-size: .78rem;
+  line-height: 1.35;
+}
+
+.fucking-dark-toggle {
+  min-width: 4.6rem;
+  min-height: 2.35rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--theme-accent) 32%, #7d898b 68%);
+  background: #d8dddc;
+  color: #4b5557;
+  font: 700 .73rem/1 var(--font-ui, system-ui, sans-serif);
+  letter-spacing: .08em;
+  transition: background .18s ease, color .18s ease, border-color .18s ease, transform .18s ease;
+}
+
+.fucking-dark-toggle:hover {
+  transform: translateY(-1px);
+}
+
+.fucking-dark-toggle.active {
+  background: color-mix(in srgb, var(--theme-accent) 62%, #263133 38%);
+  border-color: color-mix(in srgb, var(--theme-accent) 70%, #202a2c 30%);
+  color: #eef2f1;
+}
+
+:root[data-tbft-dark="true"] .app-shell {
+  --task-card-base: color-mix(in srgb, #879799 66%, var(--theme-accent) 34%);
+  --task-card-tint: color-mix(in srgb, #8f9d9f 66%, var(--theme-accent) 34%);
+  --task-card-tint-hover: color-mix(in srgb, #9ba8aa 62%, var(--theme-accent) 38%);
+  --task-card-line: color-mix(in srgb, #657375 60%, var(--theme-accent) 40%);
+}
+
+@media (min-width: 761px) {
+  :root[data-tbft-dark="true"] .main-panel:has(.dashboard-status-row) {
+    --dash-bg: #8d9897;
+    --dash-bg-soft: #96a09f;
+    --dash-panel: color-mix(in srgb, #7f8b8a 74%, var(--theme-accent) 26%);
+    --dash-panel-strong: color-mix(in srgb, #778281 70%, var(--theme-accent) 30%);
+    --dash-line: rgba(28, 38, 39, .18);
+    --dash-line-strong: rgba(28, 38, 39, .28);
+    --dash-text: #202829;
+    --dash-soft: #394546;
+    --dash-faint: #536061;
+    background:
+      radial-gradient(circle at 15% 10%, rgba(255,255,255,.035), transparent 31rem),
+      radial-gradient(circle at 86% 90%, color-mix(in srgb, var(--theme-accent), transparent 88%), transparent 32rem),
+      linear-gradient(135deg, #929c9a, #879290 55%, #7f8b89);
+  }
+
+  :root[data-tbft-dark="true"] .main-panel:has(.dashboard-status-row) .topbar {
+    background: color-mix(in srgb, #7f8a88 70%, var(--theme-accent) 30%);
+    border-bottom-color: rgba(31, 42, 43, .22);
+  }
+
+  :root[data-tbft-dark="true"] .page-content:has(.dashboard-status-row) .notepad-column {
+    background: var(--dash-panel);
+    border-color: rgba(35, 47, 48, .20);
+  }
+
+  :root[data-tbft-dark="true"] .page-content:has(.dashboard-status-row) .column-header {
+    background: var(--dash-panel-strong);
+    border-bottom-color: rgba(35, 47, 48, .20);
+  }
+
+  :root[data-tbft-dark="true"] .page-content:has(.dashboard-status-row) .quick-add {
+    background: color-mix(in srgb, var(--dash-panel-strong) 72%, var(--theme-accent) 28%);
+    border-color: rgba(35, 47, 48, .22);
+    color: #344041;
+  }
+
+  :root[data-tbft-dark="true"] .page-content:has(.dashboard-status-row) .quick-add:hover {
+    background: color-mix(in srgb, var(--dash-panel-strong) 62%, var(--theme-accent) 38%);
+  }
+
+  :root[data-tbft-dark="true"] .page-content:has(.dashboard-status-row) .task-card,
+  :root[data-tbft-dark="true"] .page-content:has(.dashboard-status-row) .task-card.state-completed,
+  :root[data-tbft-dark="true"] .page-content:has(.dashboard-status-row) .task-card.state-overdue,
+  :root[data-tbft-dark="true"] .page-content:has(.dashboard-status-row) .task-card.state-carried,
+  :root[data-tbft-dark="true"] .page-content:has(.dashboard-status-row) .task-card.state-future {
+    background: var(--task-card-tint);
+    border-color: color-mix(in srgb, var(--task-card-line), transparent 8%);
+  }
+
+  :root[data-tbft-dark="true"] .page-content:has(.dashboard-status-row) .task-card:hover,
+  :root[data-tbft-dark="true"] .page-content:has(.dashboard-status-row) .task-card.state-completed:hover,
+  :root[data-tbft-dark="true"] .page-content:has(.dashboard-status-row) .task-card.state-overdue:hover,
+  :root[data-tbft-dark="true"] .page-content:has(.dashboard-status-row) .task-card.state-carried:hover,
+  :root[data-tbft-dark="true"] .page-content:has(.dashboard-status-row) .task-card.state-future:hover {
+    background: var(--task-card-tint-hover);
+  }
+
+  :root[data-tbft-dark="true"] .page-content:has(.dashboard-status-row) .complete-control {
+    background: rgba(125, 140, 141, .58);
+    border-color: rgba(48, 62, 63, .28);
+  }
+}
+
+@media (max-width: 760px) {
+  :root[data-tbft-dark="true"] .task-card,
+  :root[data-tbft-dark="true"] .task-card.state-completed,
+  :root[data-tbft-dark="true"] .task-card.state-overdue,
+  :root[data-tbft-dark="true"] .task-card.state-carried,
+  :root[data-tbft-dark="true"] .task-card.state-future {
+    background: color-mix(in srgb, #a7b4b5 70%, var(--theme-accent) 30%);
+  }
+}
