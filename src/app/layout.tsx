@@ -6,7 +6,7 @@ import "./recurring-tasks.css";
 import "./archive-permanent-delete.css";
 import "./project-workspace-v2.css";
 import "./google-drive.css";
-import "./background-themes.css";
+import "./typography-v2.css";
 
 export const metadata: Metadata = {
   title: "The Best Fucking Team",
