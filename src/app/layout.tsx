@@ -7,6 +7,7 @@ import "./archive-permanent-delete.css";
 import "./project-workspace-v2.css";
 import "./google-drive.css";
 import "./typography-v2.css";
+import "./final-polish.css";
 
 export const metadata: Metadata = {
   title: "The Best Fucking Team",
