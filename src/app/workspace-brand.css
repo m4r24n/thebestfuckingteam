@@ -1,0 +1,32 @@
+/* TBFT workspace identity — visible beside the top-left logo. */
+.workspace-wordmark {
+  display: inline-block;
+  max-width: min(42vw, 34rem);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: color-mix(in srgb, var(--theme-accent) 18%, #2e3738 82%);
+  font-family: "Snell Roundhand", "Segoe Script", "Apple Chancery", "URW Chancery L", cursive;
+  font-size: clamp(1.18rem, 1.55vw, 1.72rem);
+  font-weight: 500;
+  line-height: 1;
+  letter-spacing: .005em;
+  transform: translateY(.02em);
+}
+
+.topbar .user-switcher {
+  gap: .72rem;
+}
+
+@media (max-width: 760px) {
+  .workspace-wordmark {
+    max-width: 9.5rem;
+    font-size: 1.08rem;
+  }
+}
+
+@media (max-width: 430px) {
+  .workspace-wordmark {
+    display: none;
+  }
+}
