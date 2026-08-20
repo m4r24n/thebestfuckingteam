@@ -46,9 +46,7 @@
   flex: 0 0 2.65rem;
 }
 
-/* Original geometric monogram: four precise strokes forming two linked T/F shapes.
-   It intentionally avoids a containing badge so the mark feels like a finished identity,
-   not a placeholder avatar. */
+/* Original geometric monogram: four precise strokes forming two linked T/F shapes. */
 .brand-mark::before,
 .topbar .user-chip .avatar::before {
   content: "";
@@ -83,15 +81,12 @@
 
 /* ---------- Accent-aware card colour system ---------- */
 .app-shell {
-  /* Light blue remains the visual baseline. The selected appearance accent then
-     nudges the tint rather than overwhelming the cards. */
-  --task-card-base: #edf7fc;
-  --task-card-tint: color-mix(in srgb, var(--task-card-base) 90%, var(--theme-accent) 10%);
-  --task-card-tint-hover: color-mix(in srgb, #f7fbfd 88%, var(--theme-accent) 12%);
-  --task-card-line: color-mix(in srgb, #c9e0eb 76%, var(--theme-accent) 24%);
+  --task-card-base: #dce9ed;
+  --task-card-tint: color-mix(in srgb, var(--task-card-base) 84%, var(--theme-accent) 16%);
+  --task-card-tint-hover: color-mix(in srgb, #e4edef 82%, var(--theme-accent) 18%);
+  --task-card-line: color-mix(in srgb, #aebfc3 72%, var(--theme-accent) 28%);
 }
 
-/* General task cards outside the Today-specific 2.0 layer. */
 .task-card,
 .task-card.state-completed,
 .task-card.state-overdue,
@@ -109,8 +104,6 @@
   background: var(--task-card-tint-hover);
 }
 
-/* Today dashboard: remove the old pink/amber/green fills. Semantic state remains
-   visible through the left rail and status pill, while the card itself follows Appearance. */
 .main-panel:has(.dashboard-status-row) {
   --dash-task: var(--task-card-tint);
   --dash-task-hover: var(--task-card-tint-hover);
@@ -123,7 +116,7 @@
 .page-content:has(.dashboard-status-row) .task-card.state-future {
   background: var(--task-card-tint);
   border-color: color-mix(in srgb, var(--task-card-line), transparent 20%);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,.58);
+  box-shadow: none;
 }
 
 .page-content:has(.dashboard-status-row) .task-card:hover,
@@ -134,17 +127,107 @@
   background: var(--task-card-tint-hover);
 }
 
-/* State stays legible without painting the whole card. */
-.page-content:has(.dashboard-status-row) .task-card.state-completed { border-left-color: rgba(92, 137, 111, .36); }
-.page-content:has(.dashboard-status-row) .task-card.state-overdue { border-left-color: rgba(154, 102, 96, .32); }
-.page-content:has(.dashboard-status-row) .task-card.state-carried { border-left-color: rgba(151, 126, 83, .32); }
-.page-content:has(.dashboard-status-row) .task-card.state-future { border-left-color: rgba(94, 132, 146, .34); }
+.page-content:has(.dashboard-status-row) .task-card.state-completed { border-left-color: rgba(92, 137, 111, .42); }
+.page-content:has(.dashboard-status-row) .task-card.state-overdue { border-left-color: rgba(154, 102, 96, .38); }
+.page-content:has(.dashboard-status-row) .task-card.state-carried { border-left-color: rgba(151, 126, 83, .38); }
+.page-content:has(.dashboard-status-row) .task-card.state-future { border-left-color: rgba(94, 132, 146, .40); }
 
-/* Carry the chosen appearance colour into supporting controls too, but softly. */
 .page-content:has(.dashboard-status-row) .quick-add:hover,
 .page-content:has(.dashboard-status-row) .thread-button:hover,
 .page-content:has(.dashboard-status-row) .task-menu button:hover:not(:disabled) {
-  background: color-mix(in srgb, var(--task-card-base) 91%, var(--theme-accent) 9%);
+  background: color-mix(in srgb, var(--task-card-base) 84%, var(--theme-accent) 16%);
+}
+
+/* ---------- Desktop eye-comfort dashboard ----------
+   Matte, lower-luminance surfaces replace the bright paper/white field.
+   Appearance accent now influences the whole column surface, not only individual cards. */
+@media (min-width: 761px) {
+  .main-panel:has(.dashboard-status-row) {
+    --dash-bg: #cfd4d2;
+    --dash-bg-soft: #d6dad7;
+    --dash-panel: color-mix(in srgb, #c8cecc 88%, var(--theme-accent) 12%);
+    --dash-panel-strong: color-mix(in srgb, #c4cac8 86%, var(--theme-accent) 14%);
+    --dash-line: rgba(49, 61, 62, .13);
+    --dash-line-strong: rgba(49, 61, 62, .21);
+    --dash-text: #303839;
+    --dash-soft: #586364;
+    --dash-faint: #747f7f;
+    background:
+      radial-gradient(circle at 15% 10%, rgba(255,255,255,.10), transparent 31rem),
+      radial-gradient(circle at 86% 90%, color-mix(in srgb, var(--theme-accent), transparent 94%), transparent 32rem),
+      linear-gradient(135deg, #d2d6d3, #cbd0ce 55%, #c6ccca);
+  }
+
+  .main-panel:has(.dashboard-status-row) .topbar {
+    background: color-mix(in srgb, #c9cfcc 91%, var(--theme-accent) 9%);
+    border-bottom-color: rgba(52, 63, 63, .14);
+    box-shadow: none;
+    backdrop-filter: blur(12px) saturate(90%);
+    -webkit-backdrop-filter: blur(12px) saturate(90%);
+  }
+
+  .page-content:has(.dashboard-status-row) .notepad-column {
+    background: var(--dash-panel);
+    background-image: none;
+    border-color: rgba(51, 62, 63, .13);
+    box-shadow: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    scrollbar-color: rgba(68,78,78,.30) transparent;
+  }
+
+  .page-content:has(.dashboard-status-row) .column-header {
+    background: var(--dash-panel-strong);
+    border-bottom-color: rgba(51, 62, 63, .13);
+    box-shadow: 0 .45rem .8rem -.7rem rgba(40,49,49,.36);
+    backdrop-filter: blur(10px) saturate(90%);
+    -webkit-backdrop-filter: blur(10px) saturate(90%);
+  }
+
+  /* Keep quick-add fixed directly beneath the sticky owner header while task cards scroll. */
+  .page-content:has(.dashboard-status-row) .quick-add {
+    position: sticky;
+    top: 3.72rem;
+    z-index: 3;
+    margin: 0 -.2rem .72rem;
+    width: calc(100% + .4rem);
+    min-height: 2.72rem;
+    background: color-mix(in srgb, var(--dash-panel-strong) 90%, var(--theme-accent) 10%);
+    border-color: rgba(51, 62, 63, .14);
+    color: var(--dash-soft);
+    box-shadow: 0 .55rem .8rem -.75rem rgba(40,49,49,.44);
+    backdrop-filter: blur(9px) saturate(88%);
+    -webkit-backdrop-filter: blur(9px) saturate(88%);
+  }
+
+  .page-content:has(.dashboard-status-row) .quick-add:hover {
+    background: color-mix(in srgb, var(--dash-panel-strong) 82%, var(--theme-accent) 18%);
+  }
+
+  .page-content:has(.dashboard-status-row) .task-card {
+    box-shadow: none;
+  }
+
+  .page-content:has(.dashboard-status-row) .task-card:hover {
+    box-shadow: 0 .35rem .8rem rgba(47,57,58,.055);
+  }
+
+  .page-content:has(.dashboard-status-row) .complete-control {
+    background: rgba(205, 214, 214, .62);
+    border-color: rgba(68, 80, 81, .22);
+  }
+
+  .page-content:has(.dashboard-status-row) .status-pill,
+  .page-content:has(.dashboard-status-row) .priority-pill {
+    background: rgba(74, 85, 85, .075);
+    color: #4d5859;
+  }
+
+  @media (min-width: 1280px) {
+    .page-content:has(.dashboard-status-row) .quick-add {
+      top: 3.94rem;
+    }
+  }
 }
 
 @media (max-width: 760px) {
