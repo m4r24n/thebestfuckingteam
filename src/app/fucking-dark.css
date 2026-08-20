@@ -1,41 +1,19 @@
-/* TBFT Fucking Dark — deeper matte rendering of the existing accent palette. */
-
-.fucking-dark-setting {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  margin-top: .95rem;
-  padding-top: .95rem;
-  border-top: 1px solid rgba(70, 80, 80, .12);
-}
-
-.fucking-dark-setting > div {
-  display: grid;
-  gap: .18rem;
-}
-
-.fucking-dark-setting strong {
-  font-size: .92rem;
-  font-weight: 700;
-}
-
-.fucking-dark-setting span {
-  color: #687274;
-  font-size: .78rem;
-  line-height: 1.35;
-}
+/* TBFT Fucking Dark — compact appearance toggle + deeper matte rendering. */
 
 .fucking-dark-toggle {
-  min-width: 4.6rem;
-  min-height: 2.35rem;
-  border-radius: 999px;
-  border: 1px solid color-mix(in srgb, var(--theme-accent) 32%, #7d898b 68%);
-  background: #d8dddc;
-  color: #4b5557;
-  font: 700 .73rem/1 var(--font-ui, system-ui, sans-serif);
-  letter-spacing: .08em;
-  transition: background .18s ease, color .18s ease, border-color .18s ease, transform .18s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: fit-content;
+  margin-top: .55rem;
+  padding: .44rem .68rem;
+  border-radius: .62rem;
+  border: 1px solid color-mix(in srgb, var(--theme-accent) 26%, #8a9495 74%);
+  background: rgba(214, 220, 219, .72);
+  color: #505a5c;
+  font: 700 .72rem/1 var(--font-ui, system-ui, sans-serif);
+  letter-spacing: .01em;
+  transition: background .16s ease, color .16s ease, border-color .16s ease, transform .16s ease;
 }
 
 .fucking-dark-toggle:hover {
@@ -43,9 +21,9 @@
 }
 
 .fucking-dark-toggle.active {
-  background: color-mix(in srgb, var(--theme-accent) 62%, #263133 38%);
-  border-color: color-mix(in srgb, var(--theme-accent) 70%, #202a2c 30%);
-  color: #eef2f1;
+  background: color-mix(in srgb, var(--theme-accent) 60%, #263133 40%);
+  border-color: color-mix(in srgb, var(--theme-accent) 68%, #202a2c 32%);
+  color: #f1f3f2;
 }
 
 :root[data-tbft-dark="true"] .app-shell {
