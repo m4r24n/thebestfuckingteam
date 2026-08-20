@@ -1,0 +1,164 @@
+/* TBFT final visual polish — logo-only identity and accent-aware task cards.
+   Web only. Imported last so it can refine the existing dashboard without changing app logic. */
+
+/* ---------- Logo-only TBFT mark ---------- */
+.brand-block {
+  justify-content: flex-start;
+}
+
+.brand-block > div:last-child {
+  display: none;
+}
+
+.brand-mark,
+.topbar .user-chip .avatar {
+  position: relative;
+  overflow: visible;
+  color: color-mix(in srgb, var(--theme-accent), #26323a 72%);
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  font-size: 0 !important;
+}
+
+.brand-mark {
+  width: 3rem;
+  height: 3rem;
+  flex: 0 0 3rem;
+}
+
+.topbar .user-chip {
+  min-width: 0;
+  padding: 0;
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  font-size: 0;
+}
+
+.topbar > div:first-child > .eyebrow {
+  display: none;
+}
+
+.topbar .user-chip .avatar {
+  width: 2.65rem;
+  height: 2.65rem;
+  flex: 0 0 2.65rem;
+}
+
+/* Original geometric monogram: four precise strokes forming two linked T/F shapes.
+   It intentionally avoids a containing badge so the mark feels like a finished identity,
+   not a placeholder avatar. */
+.brand-mark::before,
+.topbar .user-chip .avatar::before {
+  content: "";
+  position: absolute;
+  inset: 17%;
+  border-radius: .1rem;
+  background:
+    linear-gradient(currentColor, currentColor) 46% 4% / 2px 92% no-repeat,
+    linear-gradient(currentColor, currentColor) 8% 28% / 70% 2px no-repeat,
+    linear-gradient(currentColor, currentColor) 28% 57% / 66% 2px no-repeat,
+    linear-gradient(currentColor, currentColor) 28% 57% / 2px 39% no-repeat;
+  opacity: .95;
+}
+
+.brand-mark::after,
+.topbar .user-chip .avatar::after {
+  content: "";
+  position: absolute;
+  width: 34%;
+  height: 25%;
+  left: 33%;
+  top: 5%;
+  border-top: 2px solid currentColor;
+  border-right: 2px solid currentColor;
+  border-radius: 0 .8rem 0 0;
+  opacity: .95;
+}
+
+.sidebar .brand-mark {
+  margin-left: .1rem;
+}
+
+/* ---------- Accent-aware card colour system ---------- */
+.app-shell {
+  /* Light blue remains the visual baseline. The selected appearance accent then
+     nudges the tint rather than overwhelming the cards. */
+  --task-card-base: #edf7fc;
+  --task-card-tint: color-mix(in srgb, var(--task-card-base) 90%, var(--theme-accent) 10%);
+  --task-card-tint-hover: color-mix(in srgb, #f7fbfd 88%, var(--theme-accent) 12%);
+  --task-card-line: color-mix(in srgb, #c9e0eb 76%, var(--theme-accent) 24%);
+}
+
+/* General task cards outside the Today-specific 2.0 layer. */
+.task-card,
+.task-card.state-completed,
+.task-card.state-overdue,
+.task-card.state-carried,
+.task-card.state-future {
+  background: var(--task-card-tint);
+  border-color: color-mix(in srgb, var(--task-card-line), transparent 22%);
+}
+
+.task-card:hover,
+.task-card.state-completed:hover,
+.task-card.state-overdue:hover,
+.task-card.state-carried:hover,
+.task-card.state-future:hover {
+  background: var(--task-card-tint-hover);
+}
+
+/* Today dashboard: remove the old pink/amber/green fills. Semantic state remains
+   visible through the left rail and status pill, while the card itself follows Appearance. */
+.main-panel:has(.dashboard-status-row) {
+  --dash-task: var(--task-card-tint);
+  --dash-task-hover: var(--task-card-tint-hover);
+}
+
+.page-content:has(.dashboard-status-row) .task-card,
+.page-content:has(.dashboard-status-row) .task-card.state-completed,
+.page-content:has(.dashboard-status-row) .task-card.state-overdue,
+.page-content:has(.dashboard-status-row) .task-card.state-carried,
+.page-content:has(.dashboard-status-row) .task-card.state-future {
+  background: var(--task-card-tint);
+  border-color: color-mix(in srgb, var(--task-card-line), transparent 20%);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.58);
+}
+
+.page-content:has(.dashboard-status-row) .task-card:hover,
+.page-content:has(.dashboard-status-row) .task-card.state-completed:hover,
+.page-content:has(.dashboard-status-row) .task-card.state-overdue:hover,
+.page-content:has(.dashboard-status-row) .task-card.state-carried:hover,
+.page-content:has(.dashboard-status-row) .task-card.state-future:hover {
+  background: var(--task-card-tint-hover);
+}
+
+/* State stays legible without painting the whole card. */
+.page-content:has(.dashboard-status-row) .task-card.state-completed { border-left-color: rgba(92, 137, 111, .36); }
+.page-content:has(.dashboard-status-row) .task-card.state-overdue { border-left-color: rgba(154, 102, 96, .32); }
+.page-content:has(.dashboard-status-row) .task-card.state-carried { border-left-color: rgba(151, 126, 83, .32); }
+.page-content:has(.dashboard-status-row) .task-card.state-future { border-left-color: rgba(94, 132, 146, .34); }
+
+/* Carry the chosen appearance colour into supporting controls too, but softly. */
+.page-content:has(.dashboard-status-row) .quick-add:hover,
+.page-content:has(.dashboard-status-row) .thread-button:hover,
+.page-content:has(.dashboard-status-row) .task-menu button:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--task-card-base) 91%, var(--theme-accent) 9%);
+}
+
+@media (max-width: 760px) {
+  .topbar .user-chip .avatar {
+    width: 2.85rem;
+    height: 2.85rem;
+    flex-basis: 2.85rem;
+  }
+
+  .topbar .user-chip {
+    min-height: 3rem;
+  }
+
+  .page-content:has(.dashboard-status-row) .task-card {
+    border-color: color-mix(in srgb, var(--task-card-line), transparent 12%);
+  }
+}
