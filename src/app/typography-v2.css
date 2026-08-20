@@ -1,0 +1,80 @@
+/* TBFT typography — clean UI first, typewriter texture only for task details.
+   Uses native system fonts so text stays crisp on phones without an extra font download. */
+
+:root {
+  --font-ui: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-detail: ui-monospace, "SFMono-Regular", "Cascadia Mono", "Liberation Mono", "Courier New", monospace;
+  --font: var(--font-ui);
+}
+
+body,
+button,
+input,
+textarea,
+select {
+  font-family: var(--font-ui);
+}
+
+/* The Today dashboard previously used mono for most prominent text.
+   Keep its calm layout, but make the interface and task titles clean sans-serif. */
+.main-panel:has(.dashboard-status-row) {
+  --dash-mono: var(--font-ui);
+}
+
+.page-content:has(.dashboard-status-row) .task-copy h4 {
+  font-family: var(--font-ui);
+  font-weight: 650;
+  letter-spacing: -.018em;
+}
+
+/* Typewriter character belongs in supporting task information, not the task name. */
+.page-content:has(.dashboard-status-row) .task-copy p,
+.page-content:has(.dashboard-status-row) .task-meta,
+.page-content:has(.dashboard-status-row) .carry-note,
+.page-content:has(.dashboard-status-row) .thread-button {
+  font-family: var(--font-detail);
+  letter-spacing: -.01em;
+}
+
+.page-content:has(.dashboard-status-row) .task-copy p {
+  font-weight: 500;
+}
+
+.page-content:has(.dashboard-status-row) .task-meta,
+.page-content:has(.dashboard-status-row) .carry-note,
+.page-content:has(.dashboard-status-row) .thread-button {
+  font-weight: 540;
+}
+
+/* Keep functional/project views clean too; intentionally themed terminal/Win98 views retain their own fonts. */
+.page-heading h2,
+.project-hero h3,
+.settings-card h3,
+.calendar-header h3,
+.selected-day-header h3,
+.modal-header h3,
+.project-workspace-tabs,
+.project-documents-workspace,
+.project-timeline-workspace,
+.google-drive-settings {
+  font-family: var(--font-ui);
+}
+
+@media (max-width: 760px) {
+  .page-content:has(.dashboard-status-row) .task-copy h4 {
+    font-size: 1.05rem;
+    line-height: 1.34;
+    font-weight: 670;
+  }
+
+  .page-content:has(.dashboard-status-row) .task-copy p {
+    font-size: .85rem;
+    line-height: 1.55;
+  }
+
+  .page-content:has(.dashboard-status-row) .task-meta,
+  .page-content:has(.dashboard-status-row) .carry-note,
+  .page-content:has(.dashboard-status-row) .thread-button {
+    letter-spacing: -.015em;
+  }
+}
