@@ -9,6 +9,7 @@ import "./google-drive.css";
 import "./typography-v2.css";
 import "./final-polish.css";
 import "./fucking-dark.css";
+import "./settings-compact.css";
 
 export const metadata: Metadata = {
   title: "The Best Fucking Team",
