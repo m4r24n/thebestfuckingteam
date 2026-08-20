@@ -166,38 +166,75 @@
     -webkit-backdrop-filter: blur(12px) saturate(90%);
   }
 
+  /* Each desktop column is a stable three-zone layout:
+     owner header, independently scrolling tasks, fixed add-task action. */
   .page-content:has(.dashboard-status-row) .notepad-column {
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    min-height: 0;
+    overflow: hidden;
     background: var(--dash-panel);
     background-image: none;
     border-color: rgba(51, 62, 63, .13);
     box-shadow: none;
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
-    scrollbar-color: rgba(68,78,78,.30) transparent;
   }
 
   .page-content:has(.dashboard-status-row) .column-header {
+    grid-row: 1;
+    position: relative;
+    top: auto;
+    z-index: 2;
+    margin: -1rem -1rem 0;
+    padding: 1.12rem 1.12rem .9rem;
     background: var(--dash-panel-strong);
     border-bottom-color: rgba(51, 62, 63, .13);
-    box-shadow: 0 .45rem .8rem -.7rem rgba(40,49,49,.36);
-    backdrop-filter: blur(10px) saturate(90%);
-    -webkit-backdrop-filter: blur(10px) saturate(90%);
+    box-shadow: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
   }
 
-  /* Keep quick-add fixed directly beneath the sticky owner header while task cards scroll. */
+  .page-content:has(.dashboard-status-row) .task-list {
+    grid-row: 2;
+    min-height: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(68,78,78,.30) transparent;
+    padding: .78rem .08rem .7rem;
+  }
+
+  .page-content:has(.dashboard-status-row) .task-list::-webkit-scrollbar {
+    width: .46rem;
+  }
+
+  .page-content:has(.dashboard-status-row) .task-list::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .page-content:has(.dashboard-status-row) .task-list::-webkit-scrollbar-thumb {
+    border-radius: 99rem;
+    background: rgba(68,78,78,.25);
+  }
+
   .page-content:has(.dashboard-status-row) .quick-add {
-    position: sticky;
-    top: 3.72rem;
-    z-index: 3;
-    margin: 0 -.2rem .72rem;
-    width: calc(100% + .4rem);
+    grid-row: 3;
+    position: relative;
+    top: auto;
+    z-index: 2;
+    order: 3;
+    width: 100%;
     min-height: 2.72rem;
+    margin: .72rem 0 0;
     background: color-mix(in srgb, var(--dash-panel-strong) 90%, var(--theme-accent) 10%);
     border-color: rgba(51, 62, 63, .14);
     color: var(--dash-soft);
-    box-shadow: 0 .55rem .8rem -.75rem rgba(40,49,49,.44);
-    backdrop-filter: blur(9px) saturate(88%);
-    -webkit-backdrop-filter: blur(9px) saturate(88%);
+    box-shadow: none;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
   }
 
   .page-content:has(.dashboard-status-row) .quick-add:hover {
@@ -224,8 +261,13 @@
   }
 
   @media (min-width: 1280px) {
-    .page-content:has(.dashboard-status-row) .quick-add {
-      top: 3.94rem;
+    .page-content:has(.dashboard-status-row) .column-header {
+      margin: -1.12rem -1.12rem 0;
+      padding: 1.25rem 1.25rem .95rem;
+    }
+
+    .page-content:has(.dashboard-status-row) .task-list {
+      padding-top: .85rem;
     }
   }
 }
