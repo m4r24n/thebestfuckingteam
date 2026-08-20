@@ -5,6 +5,7 @@ import ProjectWorkspaceEnhancerHost from "@/components/ProjectWorkspaceEnhancerH
 import ProjectArchiveVisibilityGuard from "@/components/ProjectArchiveVisibilityGuard";
 import GoogleDriveSettings from "@/components/GoogleDriveSettings";
 import GoogleDriveHierarchySync from "@/components/GoogleDriveHierarchySync";
+import FuckingDarkEnhancer from "@/components/FuckingDarkEnhancer";
 
 export default function Home() {
   return (
@@ -16,6 +17,7 @@ export default function Home() {
       <ProjectArchiveVisibilityGuard />
       <GoogleDriveSettings />
       <GoogleDriveHierarchySync />
+      <FuckingDarkEnhancer />
     </>
   );
 }
