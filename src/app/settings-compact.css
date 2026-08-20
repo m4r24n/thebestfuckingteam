@@ -1,0 +1,43 @@
+/* Compact desktop settings layout — natural-height cards packed into two balanced columns. */
+@media (min-width: 761px) {
+  .page-content .settings-grid {
+    display: block;
+    columns: 2;
+    column-gap: .9rem;
+  }
+
+  .page-content .settings-grid > .settings-card {
+    display: grid;
+    width: 100%;
+    margin: 0 0 .9rem;
+    break-inside: avoid;
+    -webkit-column-break-inside: avoid;
+    page-break-inside: avoid;
+    padding: 1.05rem 1.1rem;
+    gap: .72rem;
+  }
+
+  .page-content .settings-grid > .cloud-card,
+  .page-content .settings-grid > .google-drive-card {
+    grid-column: auto;
+  }
+
+  .page-content .settings-grid .settings-note {
+    margin-top: 0;
+  }
+
+  .page-content .settings-grid .settings-actions-row {
+    gap: .55rem;
+  }
+}
+
+@media (max-width: 760px) {
+  .page-content .settings-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .page-content .settings-grid > .settings-card {
+    margin: 0;
+  }
+}
