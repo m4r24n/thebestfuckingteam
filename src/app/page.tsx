@@ -5,6 +5,7 @@ import ProjectWorkspaceEnhancerHost from "@/components/ProjectWorkspaceEnhancerH
 import ProjectArchiveVisibilityGuard from "@/components/ProjectArchiveVisibilityGuard";
 import GoogleDriveSettings from "@/components/GoogleDriveSettings";
 import GoogleDriveHierarchySync from "@/components/GoogleDriveHierarchySync";
+import BackgroundSettings from "@/components/BackgroundSettings";
 
 export default function Home() {
   return (
@@ -16,6 +17,7 @@ export default function Home() {
       <ProjectArchiveVisibilityGuard />
       <GoogleDriveSettings />
       <GoogleDriveHierarchySync />
+      <BackgroundSettings />
     </>
   );
 }
