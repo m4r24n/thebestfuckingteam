@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import "./dashboard-v2.css";
+import "./mobile-readability.css";
 import "./recurring-tasks.css";
 import "./archive-permanent-delete.css";
 import "./project-workspace-v2.css";
