@@ -291,7 +291,8 @@ export default function ProjectWorkspaceEnhancer() {
   }, [files, query, selectedSpaceId]);
 
   const uploadFiles = async (picked: FileList | null) => {
-    if (!picked?.length || !project || busy) return;
+    const pickedFiles = Array.from(picked ?? []);
+    if (!pickedFiles.length || !project || busy) return;
     const supabase = getSupabaseClient();
     if (!supabase) return;
     const { data: auth } = await supabase.auth.getUser();
@@ -307,7 +308,7 @@ export default function ProjectWorkspaceEnhancer() {
     setBusy(true);
     setMessage("");
     try {
-      for (const file of Array.from(picked)) {
+      for (const file of pickedFiles) {
         await uploadProjectFile(supabase, {
           workspaceId: project.workspaceId,
           projectId: project.id,
@@ -318,7 +319,7 @@ export default function ProjectWorkspaceEnhancer() {
         });
       }
       await loadDocuments();
-      setMessage(`${picked.length} file${picked.length === 1 ? "" : "s"} added.`);
+      setMessage(`${pickedFiles.length} file${pickedFiles.length === 1 ? "" : "s"} added.`);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : String(error));
     } finally {
