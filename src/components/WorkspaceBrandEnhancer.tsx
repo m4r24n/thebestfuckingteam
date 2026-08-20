@@ -22,7 +22,8 @@ export default function WorkspaceBrandEnhancer() {
           wordmark.className = "workspace-wordmark";
           userSwitcher.append(wordmark);
         }
-        wordmark.textContent = sourceTitle.textContent?.trim() || "The Best Fucking Team!";
+        const nextTitle = sourceTitle.textContent?.trim() || "The Best Fucking Team!";
+        if (wordmark.textContent !== nextTitle) wordmark.textContent = nextTitle;
       }
 
       // Keep the first-time workspace default aligned with the product identity.
@@ -39,7 +40,7 @@ export default function WorkspaceBrandEnhancer() {
 
     sync();
     const observer = new MutationObserver(sync);
-    observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+    observer.observe(document.body, { childList: true, subtree: true });
     return () => observer.disconnect();
   }, []);
 
