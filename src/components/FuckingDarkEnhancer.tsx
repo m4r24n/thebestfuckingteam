@@ -17,28 +17,16 @@ function applyDarkPreference(enabled: boolean) {
 }
 
 function makeToggle() {
-  const row = document.createElement("div");
-  row.className = "fucking-dark-setting";
-
-  const copy = document.createElement("div");
-  const title = document.createElement("strong");
-  title.textContent = "Fucking Dark";
-  const note = document.createElement("span");
-  note.textContent = "Deeper matte version of the selected accent.";
-  copy.append(title, note);
-
   const button = document.createElement("button");
   button.type = "button";
   button.className = "fucking-dark-toggle";
-  button.setAttribute("role", "switch");
+  button.textContent = "Fucking Dark";
 
   const sync = () => {
     const enabled = readDarkPreference();
     applyDarkPreference(enabled);
     button.classList.toggle("active", enabled);
-    button.setAttribute("aria-checked", enabled ? "true" : "false");
-    button.setAttribute("aria-label", enabled ? "Turn Fucking Dark off" : "Turn Fucking Dark on");
-    button.textContent = enabled ? "ON" : "OFF";
+    button.setAttribute("aria-pressed", enabled ? "true" : "false");
   };
 
   button.addEventListener("click", () => {
@@ -52,9 +40,8 @@ function makeToggle() {
     sync();
   });
 
-  row.append(copy, button);
   sync();
-  return row;
+  return button;
 }
 
 export default function FuckingDarkEnhancer() {
@@ -64,12 +51,13 @@ export default function FuckingDarkEnhancer() {
     const mount = () => {
       const cards = Array.from(document.querySelectorAll<HTMLElement>(".settings-card"));
       const appearance = cards.find((card) => card.querySelector(".eyebrow")?.textContent?.trim() === "APPEARANCE");
-      if (!appearance || appearance.querySelector(".fucking-dark-setting")) return;
+      if (!appearance || appearance.querySelector(".fucking-dark-toggle")) return;
 
-      const note = appearance.querySelector(".settings-note");
-      const toggle = makeToggle();
-      if (note) appearance.insertBefore(toggle, note);
-      else appearance.append(toggle);
+      const accentSelector = appearance.querySelector(".accent-selector");
+      if (!accentSelector) return;
+
+      const button = makeToggle();
+      accentSelector.insertAdjacentElement("afterend", button);
     };
 
     mount();
