@@ -215,35 +215,23 @@ async function loadWorkspaceDataFromCloud(
 
   const taskIds = tasks.map((task) => task.id);
   let messages: TaskMessage[] = [];
-  let taskAppearances: TaskAppearance[] = [];
-  if (taskIds.length) {
-    const [messageResult, appearanceResult] = await Promise.all([
-      supabase
-        .from("task_messages")
-        .select("id, task_id, author_id, body, created_at")
-        .in("task_id", taskIds)
-        .is("deleted_at", null)
-        .order("created_at", { ascending: true }),
-      supabase
-        .from("task_day_appearances")
-        .select("task_id, board_date, appearance_type")
-        .in("task_id", taskIds),
-    ]);
-    throwIfError(messageResult.error);
-    throwIfError(appearanceResult.error);
+  const taskAppearances: TaskAppearance[] = [];
 
-    messages = (messageResult.data ?? []).map((row) => ({
+  if (taskIds.length) {
+    const { data: messageRows, error: messageError } = await supabase
+      .from("task_messages")
+      .select("id, task_id, author_id, body, created_at")
+      .in("task_id", taskIds)
+      .is("deleted_at", null)
+      .order("created_at", { ascending: true });
+    throwIfError(messageError);
+
+    messages = (messageRows ?? []).map((row) => ({
       id: row.id as string,
       taskId: row.task_id as string,
       authorId: row.author_id as string,
       body: row.body as string,
       createdAt: row.created_at as string,
-    }));
-
-    taskAppearances = (appearanceResult.data ?? []).map((row) => ({
-      taskId: row.task_id as string,
-      boardDate: row.board_date as string,
-      type: row.appearance_type as TaskAppearance["type"],
     }));
   }
 
