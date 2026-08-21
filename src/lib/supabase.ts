@@ -30,6 +30,30 @@ function installOnlineFallbackSignal() {
   }
 }
 
+function reportCloudTimeout(input: RequestInfo | URL) {
+  if (typeof window === "undefined") return;
+  try {
+    const raw = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
+    const url = new URL(raw, window.location.origin);
+    const payload = JSON.stringify({
+      path: `${url.pathname}${url.search}`.slice(0, 1200),
+      at: new Date().toISOString(),
+    });
+    if (navigator.sendBeacon) {
+      navigator.sendBeacon("/api/diagnostics/cloud-timeout", new Blob([payload], { type: "application/json" }));
+    } else {
+      void fetch("/api/diagnostics/cloud-timeout", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: payload,
+        keepalive: true,
+      }).catch(() => undefined);
+    }
+  } catch {
+    // Diagnostics must never interfere with the app.
+  }
+}
+
 function markCloudTemporarilyUnavailable() {
   if (typeof window === "undefined") return;
   cloudFailureUntil = Date.now() + CLOUD_FAILURE_WINDOW_MS;
@@ -55,6 +79,7 @@ async function resilientFetch(input: RequestInfo | URL, init?: RequestInit): Pro
     return await fetch(input, { ...init, signal: controller.signal });
   } catch (error) {
     if (controller.signal.aborted && !upstreamSignal?.aborted) {
+      reportCloudTimeout(input);
       markCloudTemporarilyUnavailable();
       throw new Error("TBFT cloud request timed out.");
     }
