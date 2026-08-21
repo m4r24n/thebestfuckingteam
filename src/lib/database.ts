@@ -19,6 +19,9 @@ export class DatabaseNotReadyError extends Error {
   }
 }
 
+const CLOUD_LOAD_TIMEOUT_MS = 8_000;
+const CLOUD_RPC_TIMEOUT_MS = 6_000;
+
 function throwIfError(error: { message: string; code?: string } | null): void {
   if (!error) return;
   if (error.code === "42P01" || error.message.includes("does not exist")) {
@@ -30,6 +33,38 @@ function throwIfError(error: { message: string; code?: string } | null): void {
 function normalizeTime(value: string | null): string | undefined {
   if (!value) return undefined;
   return value.slice(0, 5);
+}
+
+async function withCloudTimeout<T>(operation: PromiseLike<T>, milliseconds: number, message: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      Promise.resolve(operation),
+      new Promise<never>((_, reject) => {
+        timer = setTimeout(() => reject(new Error(message)), milliseconds);
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
+function readCachedWorkspace(userId: string): AppData | null {
+  if (typeof window === "undefined") return null;
+  const key = `tbft-cloud-cache-v1-${userId}`;
+  const cached = window.localStorage.getItem(key);
+  if (!cached) return null;
+  try {
+    return JSON.parse(cached) as AppData;
+  } catch {
+    window.localStorage.removeItem(key);
+    return null;
+  }
+}
+
+function isTransientCloudError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return /401|jwt|token|unauthori[sz]ed|fetch|network|timeout|timed out|connection|gateway/i.test(message);
 }
 
 export async function findWorkspaceMembership(
@@ -54,7 +89,7 @@ export async function findWorkspaceMembership(
   };
 }
 
-export async function loadWorkspaceData(
+async function loadWorkspaceDataFromCloud(
   supabase: SupabaseClient,
   userId: string,
 ): Promise<AppData | null> {
@@ -240,6 +275,24 @@ export async function loadWorkspaceData(
   };
 }
 
+export async function loadWorkspaceData(
+  supabase: SupabaseClient,
+  userId: string,
+): Promise<AppData | null> {
+  try {
+    return await withCloudTimeout(
+      loadWorkspaceDataFromCloud(supabase, userId),
+      CLOUD_LOAD_TIMEOUT_MS,
+      "Cloud data request timed out.",
+    );
+  } catch (error) {
+    if (error instanceof DatabaseNotReadyError) throw error;
+    const cached = readCachedWorkspace(userId);
+    if (cached) return cached;
+    throw error;
+  }
+}
+
 export async function recordActivity(
   supabase: SupabaseClient,
   workspaceId: string,
@@ -306,10 +359,20 @@ export async function repairRollovers(
   workspaceId: string,
   boardDate: string,
 ): Promise<number> {
-  const { data, error } = await supabase.rpc("repair_workspace_rollovers", {
-    target_workspace: workspaceId,
-    target_board_date: boardDate,
-  });
-  throwIfError(error);
-  return Number(data ?? 0);
+  try {
+    const { data, error } = await withCloudTimeout(
+      supabase.rpc("repair_workspace_rollovers", {
+        target_workspace: workspaceId,
+        target_board_date: boardDate,
+      }),
+      CLOUD_RPC_TIMEOUT_MS,
+      "Rollover repair timed out.",
+    );
+    throwIfError(error);
+    return Number(data ?? 0);
+  } catch (error) {
+    if (error instanceof DatabaseNotReadyError) throw error;
+    if (isTransientCloudError(error)) return 0;
+    throw error;
+  }
 }
