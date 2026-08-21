@@ -8,6 +8,7 @@ import GoogleDriveHierarchySync from "@/components/GoogleDriveHierarchySync";
 import FuckingDarkEnhancer from "@/components/FuckingDarkEnhancer";
 import WorkspaceBrandEnhancer from "@/components/WorkspaceBrandEnhancer";
 import TaskFilesEnhancer from "@/components/TaskFilesEnhancer";
+import ProjectFileRecoveryEnhancer from "@/components/ProjectFileRecoveryEnhancer";
 
 export default function Home() {
   return (
@@ -22,6 +23,7 @@ export default function Home() {
       <FuckingDarkEnhancer />
       <WorkspaceBrandEnhancer />
       <TaskFilesEnhancer />
+      <ProjectFileRecoveryEnhancer />
     </>
   );
 }
