@@ -8,6 +8,8 @@ export default function GoogleDriveHierarchySync() {
     let cancelled = false;
     let timer: number | null = null;
     let cleanupChannel: (() => void) | null = null;
+    let syncing = false;
+    let rerunRequested = false;
 
     const start = async () => {
       const supabase = getSupabaseClient();
@@ -30,14 +32,29 @@ export default function GoogleDriveHierarchySync() {
       if (!connected || cancelled) return;
 
       const sync = async () => {
-        const { data: session } = await supabase.auth.getSession();
-        const token = session.session?.access_token;
-        if (!token || cancelled) return;
-        await fetch("/api/google-drive/sync", {
-          method: "POST",
-          headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
-          body: JSON.stringify({ workspaceId }),
-        }).catch(() => undefined);
+        if (cancelled) return;
+        if (syncing) {
+          rerunRequested = true;
+          return;
+        }
+
+        syncing = true;
+        try {
+          const { data: session } = await supabase.auth.getSession();
+          const token = session.session?.access_token;
+          if (!token || cancelled) return;
+          await fetch("/api/google-drive/sync", {
+            method: "POST",
+            headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
+            body: JSON.stringify({ workspaceId }),
+          }).catch(() => undefined);
+        } finally {
+          syncing = false;
+          if (rerunRequested && !cancelled) {
+            rerunRequested = false;
+            schedule();
+          }
+        }
       };
 
       const schedule = () => {
@@ -45,12 +62,20 @@ export default function GoogleDriveHierarchySync() {
         timer = window.setTimeout(() => void sync(), 700);
       };
 
+      // Sync once when the authenticated workspace starts. Afterwards only task/project
+      // changes schedule a sync. Do not listen to project_file_spaces here: the sync
+      // endpoint updates those rows itself, which previously created an endless feedback loop.
       void sync();
       const channel = supabase
-        .channel(`tbft-drive-spaces-${workspaceId}`)
+        .channel(`tbft-drive-hierarchy-${workspaceId}`)
         .on(
           "postgres_changes",
-          { event: "*", schema: "public", table: "project_file_spaces", filter: `workspace_id=eq.${workspaceId}` },
+          { event: "*", schema: "public", table: "tasks", filter: `workspace_id=eq.${workspaceId}` },
+          schedule,
+        )
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "projects", filter: `workspace_id=eq.${workspaceId}` },
           schedule,
         )
         .subscribe();
