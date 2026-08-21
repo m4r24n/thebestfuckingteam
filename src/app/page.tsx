@@ -7,6 +7,7 @@ import GoogleDriveSettings from "@/components/GoogleDriveSettings";
 import GoogleDriveHierarchySync from "@/components/GoogleDriveHierarchySync";
 import FuckingDarkEnhancer from "@/components/FuckingDarkEnhancer";
 import WorkspaceBrandEnhancer from "@/components/WorkspaceBrandEnhancer";
+import TaskFilesEnhancer from "@/components/TaskFilesEnhancer";
 
 export default function Home() {
   return (
@@ -20,6 +21,7 @@ export default function Home() {
       <GoogleDriveHierarchySync />
       <FuckingDarkEnhancer />
       <WorkspaceBrandEnhancer />
+      <TaskFilesEnhancer />
     </>
   );
 }
