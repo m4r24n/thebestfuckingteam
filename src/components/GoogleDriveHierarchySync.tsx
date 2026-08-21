@@ -8,10 +8,42 @@ export default function GoogleDriveHierarchySync() {
     let cancelled = false;
     let timer: number | null = null;
     let cleanupChannel: (() => void) | null = null;
+    let cleanupWait: (() => void) | null = null;
     let syncing = false;
     let rerunRequested = false;
 
+    const waitForDashboard = () => new Promise<boolean>((resolve) => {
+      if (document.querySelector(".app-shell")) {
+        resolve(true);
+        return;
+      }
+
+      const observer = new MutationObserver(() => {
+        if (!document.querySelector(".app-shell")) return;
+        observer.disconnect();
+        window.clearTimeout(timeout);
+        cleanupWait = null;
+        resolve(true);
+      });
+      observer.observe(document.body, { childList: true, subtree: true });
+
+      const timeout = window.setTimeout(() => {
+        observer.disconnect();
+        cleanupWait = null;
+        resolve(false);
+      }, 20_000);
+
+      cleanupWait = () => {
+        observer.disconnect();
+        window.clearTimeout(timeout);
+        resolve(false);
+      };
+    });
+
     const start = async () => {
+      const dashboardReady = await waitForDashboard();
+      if (!dashboardReady || cancelled) return;
+
       const supabase = getSupabaseClient();
       if (!supabase) return;
       const { data: auth } = await supabase.auth.getUser();
@@ -62,9 +94,6 @@ export default function GoogleDriveHierarchySync() {
         timer = window.setTimeout(() => void sync(), 700);
       };
 
-      // Sync once when the authenticated workspace starts. Afterwards only task/project
-      // changes schedule a sync. Do not listen to project_file_spaces here: the sync
-      // endpoint updates those rows itself, which previously created an endless feedback loop.
       void sync();
       const channel = supabase
         .channel(`tbft-drive-hierarchy-${workspaceId}`)
@@ -95,6 +124,7 @@ export default function GoogleDriveHierarchySync() {
     void start();
     return () => {
       cancelled = true;
+      cleanupWait?.();
       if (timer) window.clearTimeout(timer);
       cleanupChannel?.();
     };
