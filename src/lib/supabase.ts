@@ -97,8 +97,24 @@ function installAuthEventGuard(target: SupabaseClient) {
   target.auth.onAuthStateChange = ((callback) => original((event, session) => {
     const nextUserId = session?.user?.id ?? null;
 
-    if (event === "SIGNED_IN" && nextUserId && nextUserId === lastUserId) return;
-    if (event === "INITIAL_SESSION" || event === "SIGNED_IN" || event === "USER_UPDATED") {
+    if (event === "SIGNED_IN" && nextUserId) {
+      // Supabase can deliver SIGNED_IN after getSession() has already restored the
+      // current user. TBFT's app state used to interpret that late event as a new
+      // login and wipe an already-loaded workspace. Treat the first sign-in for a
+      // listener as session establishment instead. A genuinely different user is
+      // still delivered as SIGNED_IN so the app can reset safely.
+      if (lastUserId === nextUserId) return;
+      if (lastUserId === null) {
+        lastUserId = nextUserId;
+        callback("INITIAL_SESSION", session);
+        return;
+      }
+      lastUserId = nextUserId;
+      callback(event, session);
+      return;
+    }
+
+    if (event === "INITIAL_SESSION" || event === "USER_UPDATED" || event === "TOKEN_REFRESHED") {
       lastUserId = nextUserId;
     } else if (event === "SIGNED_OUT") {
       lastUserId = null;
