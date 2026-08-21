@@ -14,4 +14,13 @@
 .task-file-remove:hover { color: var(--danger); }
 .task-files-empty, .task-files-message { margin: 0; color: var(--text-soft); font-size: .66rem; line-height: 1.45; }
 .task-files-message { color: color-mix(in srgb, var(--text-soft), var(--theme-accent) 25%); }
+
+.project-recovered-files { margin-top: .65rem; padding-top: .7rem; border-top: 1px dashed color-mix(in srgb, var(--line-strong), transparent 18%); display: grid; gap: .5rem; }
+.project-recovered-heading { display: flex; align-items: center; justify-content: space-between; gap: .7rem; color: var(--text-faint); font-size: .64rem; }
+.project-recovered-list { display: grid; gap: .4rem; }
+.project-recovered-list button { width: 100%; min-width: 0; padding: .58rem .68rem; border: 1px solid color-mix(in srgb, var(--line), transparent 12%); border-radius: .62rem; background: color-mix(in srgb, var(--surface-raised) 94%, var(--theme-accent) 6%); color: var(--text); text-align: left; display: grid; gap: .16rem; cursor: pointer; }
+.project-recovered-list button:hover { border-color: color-mix(in srgb, var(--line-strong), var(--theme-accent) 18%); }
+.project-recovered-list strong { font-size: .72rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.project-recovered-list span, .project-recovered-files > p { margin: 0; color: var(--text-faint); font-size: .62rem; }
+
 @media (max-width: 760px) { .task-files-heading { align-items: flex-start; } .task-file-upload { min-height: 2.35rem; } .task-file-row { min-height: 2.7rem; } }
