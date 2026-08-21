@@ -11,6 +11,7 @@ import "./final-polish.css";
 import "./fucking-dark.css";
 import "./settings-compact.css";
 import "./workspace-brand.css";
+import "./task-files.css";
 
 export const metadata: Metadata = {
   title: "The Best Fucking Team",
