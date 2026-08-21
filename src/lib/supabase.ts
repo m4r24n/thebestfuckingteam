@@ -2,15 +2,16 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 let client: SupabaseClient | null = null;
 let cloudFailureUntil = 0;
+let onlineGuardInstalled = false;
 
 const CLOUD_REQUEST_TIMEOUT_MS = 8_000;
 const CLOUD_FAILURE_WINDOW_MS = 5_000;
 
 function installOnlineFallbackSignal() {
-  if (typeof window === "undefined") return;
-  const navigatorObject = window.navigator;
-  if (navigatorObject.dataset?.tbftOnlineGuard === "1") return;
+  if (typeof window === "undefined" || onlineGuardInstalled) return;
+  onlineGuardInstalled = true;
 
+  const navigatorObject = window.navigator;
   const prototype = Object.getPrototypeOf(navigatorObject) as object | null;
   const descriptor = prototype ? Object.getOwnPropertyDescriptor(prototype, "onLine") : undefined;
   const nativeGetter = descriptor?.get;
