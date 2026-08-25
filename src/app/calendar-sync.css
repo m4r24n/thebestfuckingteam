@@ -1,0 +1,105 @@
+.tbft-calendar-sync-mount {
+  margin: .15rem 0 .85rem;
+}
+
+.calendar-sync-strip {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: .55rem 1rem;
+  align-items: center;
+  padding: .82rem .9rem;
+  border: 1px solid color-mix(in srgb, var(--line) 78%, var(--theme-accent) 22%);
+  border-radius: .9rem;
+  background: color-mix(in srgb, var(--surface-raised, #faf8f2) 90%, var(--theme-accent) 10%);
+}
+
+.calendar-sync-copy {
+  min-width: 0;
+  display: grid;
+  gap: .18rem;
+}
+
+.calendar-sync-copy strong {
+  font-size: .82rem;
+  font-weight: 680;
+}
+
+.calendar-sync-copy span {
+  color: var(--text-soft);
+  font-size: .68rem;
+  line-height: 1.35;
+}
+
+.calendar-sync-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: .38rem;
+}
+
+.calendar-sync-actions button {
+  min-height: 2.15rem;
+  padding: 0 .72rem;
+  border: 1px solid color-mix(in srgb, var(--line-strong) 72%, var(--theme-accent) 28%);
+  border-radius: .58rem;
+  background: color-mix(in srgb, var(--surface, #f5f2e9) 90%, var(--theme-accent) 10%);
+  color: var(--text);
+  cursor: pointer;
+  font-size: .7rem;
+  font-weight: 640;
+}
+
+.calendar-sync-actions button:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--surface, #f5f2e9) 78%, var(--theme-accent) 22%);
+}
+
+.calendar-sync-actions .calendar-sync-link {
+  border-color: transparent;
+  background: transparent;
+  color: var(--text-soft);
+}
+
+.calendar-sync-actions .calendar-sync-link:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--surface-subtle, #efebe0) 82%, var(--theme-accent) 18%);
+  color: var(--text);
+}
+
+.calendar-sync-message {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--text-soft);
+  font-size: .66rem;
+  line-height: 1.35;
+}
+
+:root[data-tbft-dark="true"] .calendar-sync-strip {
+  background: color-mix(in srgb, #8b9797 78%, var(--theme-accent) 22%);
+  border-color: rgba(35, 47, 48, .2);
+}
+
+:root[data-tbft-dark="true"] .calendar-sync-actions button {
+  background: color-mix(in srgb, #9aa5a5 74%, var(--theme-accent) 26%);
+  border-color: rgba(35, 47, 48, .22);
+  color: #202829;
+}
+
+:root[data-tbft-dark="true"] .calendar-sync-copy span,
+:root[data-tbft-dark="true"] .calendar-sync-message,
+:root[data-tbft-dark="true"] .calendar-sync-actions .calendar-sync-link {
+  color: #4d5a5b;
+}
+
+@media (max-width: 760px) {
+  .calendar-sync-strip {
+    grid-template-columns: 1fr;
+    padding: .85rem;
+  }
+
+  .calendar-sync-actions {
+    justify-content: flex-start;
+  }
+
+  .calendar-sync-actions button {
+    min-height: 2.55rem;
+  }
+}
