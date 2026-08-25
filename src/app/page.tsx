@@ -1,3 +1,5 @@
+import "./task-detail.css";
+
 import TBFTApp from "@/components/TBFTApp";
 import RecurringTaskEnhancer from "@/components/RecurringTaskEnhancer";
 import ArchivePermanentDeleteControls from "@/components/ArchivePermanentDeleteControls";
@@ -9,6 +11,7 @@ import FuckingDarkEnhancer from "@/components/FuckingDarkEnhancer";
 import WorkspaceBrandEnhancer from "@/components/WorkspaceBrandEnhancer";
 import TaskFilesEnhancer from "@/components/TaskFilesEnhancer";
 import ProjectFileRecoveryEnhancer from "@/components/ProjectFileRecoveryEnhancer";
+import TaskDetailEnhancer from "@/components/TaskDetailEnhancer";
 
 export default function Home() {
   return (
@@ -24,6 +27,7 @@ export default function Home() {
       <WorkspaceBrandEnhancer />
       <TaskFilesEnhancer />
       <ProjectFileRecoveryEnhancer />
+      <TaskDetailEnhancer />
     </>
   );
 }
