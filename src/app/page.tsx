@@ -12,6 +12,7 @@ import WorkspaceBrandEnhancer from "@/components/WorkspaceBrandEnhancer";
 import TaskFilesEnhancer from "@/components/TaskFilesEnhancer";
 import ProjectFileRecoveryEnhancer from "@/components/ProjectFileRecoveryEnhancer";
 import TaskDetailEnhancer from "@/components/TaskDetailEnhancer";
+import SidebarCollapseEnhancer from "@/components/SidebarCollapseEnhancer";
 
 export default function Home() {
   return (
@@ -28,6 +29,7 @@ export default function Home() {
       <TaskFilesEnhancer />
       <ProjectFileRecoveryEnhancer />
       <TaskDetailEnhancer />
+      <SidebarCollapseEnhancer />
     </>
   );
 }
