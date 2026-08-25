@@ -1,0 +1,67 @@
+name: macOS signed release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version, for example 1.0.0"
+        required: true
+        default: "1.0.0"
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    runs-on: macos-15
+    env:
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+      MACOS_CERTIFICATE_P12_BASE64: ${{ secrets.MACOS_CERTIFICATE_P12_BASE64 }}
+      MACOS_CERTIFICATE_PASSWORD: ${{ secrets.MACOS_CERTIFICATE_PASSWORD }}
+      MACOS_APP_PROFILE_BASE64: ${{ secrets.MACOS_APP_PROFILE_BASE64 }}
+      MACOS_WIDGET_PROFILE_BASE64: ${{ secrets.MACOS_WIDGET_PROFILE_BASE64 }}
+      APP_STORE_CONNECT_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+      APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+      APP_STORE_CONNECT_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
+      TBFT_RELEASE_VERSION: ${{ inputs.version }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check Apple release credentials
+        shell: bash
+        run: |
+          missing=0
+          for name in \
+            APPLE_TEAM_ID \
+            MACOS_CERTIFICATE_P12_BASE64 \
+            MACOS_CERTIFICATE_PASSWORD \
+            MACOS_APP_PROFILE_BASE64 \
+            MACOS_WIDGET_PROFILE_BASE64 \
+            APP_STORE_CONNECT_KEY_ID \
+            APP_STORE_CONNECT_ISSUER_ID \
+            APP_STORE_CONNECT_PRIVATE_KEY
+          do
+            if [[ -z "${!name:-}" ]]; then
+              echo "::error::Missing GitHub secret: $name"
+              missing=1
+            fi
+          done
+          exit "$missing"
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Build, sign and notarize TBFT
+        working-directory: native/macos
+        run: bash scripts/sign-and-notarize.sh
+
+      - name: Upload installable TBFT macOS build
+        uses: actions/upload-artifact@v4
+        with:
+          name: TBFT-macOS-${{ inputs.version }}
+          path: |
+            native/macos/dist/TBFT-macOS-${{ inputs.version }}.zip
+            native/macos/dist/TBFT-macOS-${{ inputs.version }}.zip.sha256
+          if-no-files-found: error
+          retention-days: 30
