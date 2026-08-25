@@ -44,9 +44,9 @@ trap cleanup EXIT
 mkdir -p "$OUTPUT_DIR"
 rm -rf "$DERIVED_DATA"
 
-printf '%s' "$MACOS_CERTIFICATE_P12_BASE64" | base64 --decode > "$CERTIFICATE_PATH"
-printf '%s' "$MACOS_APP_PROFILE_BASE64" | base64 --decode > "$APP_PROFILE"
-printf '%s' "$MACOS_WIDGET_PROFILE_BASE64" | base64 --decode > "$WIDGET_PROFILE"
+printf '%s' "$MACOS_CERTIFICATE_P12_BASE64" | /usr/bin/base64 -D > "$CERTIFICATE_PATH"
+printf '%s' "$MACOS_APP_PROFILE_BASE64" | /usr/bin/base64 -D > "$APP_PROFILE"
+printf '%s' "$MACOS_WIDGET_PROFILE_BASE64" | /usr/bin/base64 -D > "$WIDGET_PROFILE"
 printf '%s' "$APP_STORE_CONNECT_PRIVATE_KEY" > "$ASC_KEY_PATH"
 chmod 600 "$ASC_KEY_PATH"
 
