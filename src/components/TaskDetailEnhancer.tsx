@@ -215,10 +215,7 @@ export default function TaskDetailEnhancer() {
     <div className="tbft-task-detail-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) close(); }}>
       <section className="tbft-task-detail-card" role="dialog" aria-modal="true" aria-labelledby="tbft-task-detail-title">
         <header className="tbft-task-detail-header">
-          <div>
-            <span className="eyebrow">TASK</span>
-            <h3 id="tbft-task-detail-title">{detail?.task.title || "Task details"}</h3>
-          </div>
+          <h3 id="tbft-task-detail-title">{detail?.task.title || "Task details"}</h3>
           <button type="button" className="tbft-task-detail-close" onClick={close} aria-label="Close task details" autoFocus>×</button>
         </header>
 
@@ -228,23 +225,13 @@ export default function TaskDetailEnhancer() {
           <div className="tbft-task-detail-error">{error}</div>
         ) : detail ? (
           <div className="tbft-task-detail-body">
-            <div className="tbft-task-detail-description">
-              <span>Details</span>
-              <p>{text(detail.task.description) || "No details added."}</p>
-            </div>
-
-            <div className="tbft-task-detail-grid">
-              <div><span>Owner</span><strong>{detail.ownerName}</strong></div>
-              <div><span>Status</span><strong>{detail.task.completed_at ? "Completed" : "Open"}</strong></div>
-              <div><span>Date</span><strong>{formatDate(detail.task.original_date)}</strong></div>
-              <div><span>Time</span><strong>{detail.task.deadline ? detail.task.deadline.slice(0, 5) : "No time set"}</strong></div>
-              <div><span>Priority</span><strong>{detail.task.priority.charAt(0).toUpperCase() + detail.task.priority.slice(1)}</strong></div>
-              <div><span>Project</span><strong>{detail.projectName ? `${detail.projectName}${detail.nodeName ? ` / ${detail.nodeName}` : ""}` : "No project"}</strong></div>
-            </div>
-
-            <div className="tbft-task-detail-footnote">
-              <span>Added by {detail.creatorName}</span>
-              {detail.task.completed_at && <span>Completed {formatDateTime(detail.task.completed_at)}</span>}
+            <p className="tbft-task-detail-description">{text(detail.task.description) || "No details added."}</p>
+            <div className="tbft-task-detail-meta">
+              <p>{detail.ownerName} · {detail.task.completed_at ? "Completed" : "Open"}</p>
+              <p>{formatDate(detail.task.original_date)}{detail.task.deadline ? ` · ${detail.task.deadline.slice(0, 5)}` : ""}</p>
+              <p>{detail.task.priority.charAt(0).toUpperCase() + detail.task.priority.slice(1)} priority{detail.projectName ? ` · ${detail.projectName}${detail.nodeName ? ` / ${detail.nodeName}` : ""}` : ""}</p>
+              {detail.creatorName !== detail.ownerName && <p>Added by {detail.creatorName}</p>}
+              {detail.task.completed_at && <p>Completed {formatDateTime(detail.task.completed_at)}</p>}
             </div>
           </div>
         ) : null}
