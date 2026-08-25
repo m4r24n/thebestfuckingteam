@@ -1,0 +1,94 @@
+/* Make the Today dashboard visibly follow the selected workspace accent. */
+
+:root:not([data-tbft-dark="true"]) .main-panel:has(.dashboard-status-row) {
+  --today-bg: color-mix(in srgb, #cfd4d2 62%, var(--theme-accent) 38%);
+  --today-bg-soft: color-mix(in srgb, #d8ddda 66%, var(--theme-accent) 34%);
+  --today-panel: color-mix(in srgb, #cbd1cf 68%, var(--theme-accent) 32%);
+  --today-panel-strong: color-mix(in srgb, #c4cbc8 64%, var(--theme-accent) 36%);
+  --today-card: color-mix(in srgb, #dce7e8 68%, var(--theme-accent) 32%);
+  --today-card-hover: color-mix(in srgb, #e3ecec 61%, var(--theme-accent) 39%);
+  background:
+    radial-gradient(circle at 13% 8%, rgba(255,255,255,.10), transparent 30rem),
+    radial-gradient(circle at 88% 92%, color-mix(in srgb, var(--theme-accent), transparent 75%), transparent 34rem),
+    linear-gradient(135deg, var(--today-bg-soft), var(--today-bg) 58%, color-mix(in srgb, var(--today-bg) 88%, #899392 12%));
+}
+
+:root:not([data-tbft-dark="true"]) .main-panel:has(.dashboard-status-row) .topbar {
+  background: color-mix(in srgb, #d0d6d3 66%, var(--theme-accent) 34%);
+  border-bottom-color: color-mix(in srgb, rgba(52,63,63,.18) 72%, var(--theme-accent) 28%);
+}
+
+:root:not([data-tbft-dark="true"]) .page-content:has(.dashboard-status-row) .notepad-column {
+  background: var(--today-panel);
+  border-color: color-mix(in srgb, rgba(51,62,63,.16) 68%, var(--theme-accent) 32%);
+}
+
+:root:not([data-tbft-dark="true"]) .page-content:has(.dashboard-status-row) .column-header {
+  background: var(--today-panel-strong);
+  border-bottom-color: color-mix(in srgb, rgba(51,62,63,.16) 68%, var(--theme-accent) 32%);
+}
+
+:root:not([data-tbft-dark="true"]) .page-content:has(.dashboard-status-row) .quick-add {
+  background: color-mix(in srgb, var(--today-panel-strong) 78%, var(--theme-accent) 22%);
+  border-color: color-mix(in srgb, rgba(51,62,63,.18) 68%, var(--theme-accent) 32%);
+}
+
+:root:not([data-tbft-dark="true"]) .page-content:has(.dashboard-status-row) .quick-add:hover {
+  background: color-mix(in srgb, var(--today-panel-strong) 66%, var(--theme-accent) 34%);
+}
+
+:root:not([data-tbft-dark="true"]) .page-content:has(.dashboard-status-row) .task-card,
+:root:not([data-tbft-dark="true"]) .page-content:has(.dashboard-status-row) .task-card.state-completed,
+:root:not([data-tbft-dark="true"]) .page-content:has(.dashboard-status-row) .task-card.state-overdue,
+:root:not([data-tbft-dark="true"]) .page-content:has(.dashboard-status-row) .task-card.state-carried,
+:root:not([data-tbft-dark="true"]) .page-content:has(.dashboard-status-row) .task-card.state-future {
+  background: var(--today-card);
+  border-color: color-mix(in srgb, #9daaaa 60%, var(--theme-accent) 40%);
+}
+
+:root:not([data-tbft-dark="true"]) .page-content:has(.dashboard-status-row) .task-card:hover,
+:root:not([data-tbft-dark="true"]) .page-content:has(.dashboard-status-row) .task-card.state-completed:hover,
+:root:not([data-tbft-dark="true"]) .page-content:has(.dashboard-status-row) .task-card.state-overdue:hover,
+:root:not([data-tbft-dark="true"]) .page-content:has(.dashboard-status-row) .task-card.state-carried:hover,
+:root:not([data-tbft-dark="true"]) .page-content:has(.dashboard-status-row) .task-card.state-future:hover {
+  background: var(--today-card-hover);
+}
+
+:root[data-tbft-dark="true"] .main-panel:has(.dashboard-status-row) {
+  --today-dark-bg: color-mix(in srgb, #7f8b89 61%, var(--theme-accent) 39%);
+  --today-dark-panel: color-mix(in srgb, #7d8988 64%, var(--theme-accent) 36%);
+  --today-dark-panel-strong: color-mix(in srgb, #74817f 58%, var(--theme-accent) 42%);
+  --today-dark-card: color-mix(in srgb, #8c9a9b 63%, var(--theme-accent) 37%);
+  background:
+    radial-gradient(circle at 14% 9%, rgba(255,255,255,.035), transparent 30rem),
+    radial-gradient(circle at 87% 91%, color-mix(in srgb, var(--theme-accent), transparent 72%), transparent 33rem),
+    linear-gradient(135deg, color-mix(in srgb, var(--today-dark-bg) 92%, #a9b3b1 8%), var(--today-dark-bg));
+}
+
+:root[data-tbft-dark="true"] .main-panel:has(.dashboard-status-row) .topbar {
+  background: color-mix(in srgb, #7b8785 61%, var(--theme-accent) 39%);
+}
+
+:root[data-tbft-dark="true"] .page-content:has(.dashboard-status-row) .notepad-column {
+  background: var(--today-dark-panel);
+}
+
+:root[data-tbft-dark="true"] .page-content:has(.dashboard-status-row) .column-header {
+  background: var(--today-dark-panel-strong);
+}
+
+:root[data-tbft-dark="true"] .page-content:has(.dashboard-status-row) .task-card,
+:root[data-tbft-dark="true"] .page-content:has(.dashboard-status-row) .task-card.state-completed,
+:root[data-tbft-dark="true"] .page-content:has(.dashboard-status-row) .task-card.state-overdue,
+:root[data-tbft-dark="true"] .page-content:has(.dashboard-status-row) .task-card.state-carried,
+:root[data-tbft-dark="true"] .page-content:has(.dashboard-status-row) .task-card.state-future {
+  background: var(--today-dark-card);
+  border-color: color-mix(in srgb, #667475 58%, var(--theme-accent) 42%);
+}
+
+@media (max-width: 760px) {
+  :root:not([data-tbft-dark="true"]) .page-content:has(.dashboard-status-row) .notepad-column,
+  :root[data-tbft-dark="true"] .page-content:has(.dashboard-status-row) .notepad-column {
+    background-image: none;
+  }
+}
