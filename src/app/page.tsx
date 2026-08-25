@@ -13,6 +13,7 @@ import TaskFilesEnhancer from "@/components/TaskFilesEnhancer";
 import ProjectFileRecoveryEnhancer from "@/components/ProjectFileRecoveryEnhancer";
 import TaskDetailEnhancer from "@/components/TaskDetailEnhancer";
 import SidebarCollapseEnhancer from "@/components/SidebarCollapseEnhancer";
+import CalendarSyncEnhancer from "@/components/CalendarSyncEnhancer";
 
 export default function Home() {
   return (
@@ -30,6 +31,7 @@ export default function Home() {
       <ProjectFileRecoveryEnhancer />
       <TaskDetailEnhancer />
       <SidebarCollapseEnhancer />
+      <CalendarSyncEnhancer />
     </>
   );
 }
