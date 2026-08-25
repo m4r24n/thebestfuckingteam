@@ -15,6 +15,7 @@ import "./task-files.css";
 import "./task-detail.css";
 import "./today-accent.css";
 import "./sidebar-collapse.css";
+import "./calendar-sync.css";
 
 export const metadata: Metadata = {
   title: "The Best Fucking Team",
