@@ -1,0 +1,33 @@
+name: macOS widget build
+
+on:
+  push:
+    paths:
+      - "native/macos/**"
+      - ".github/workflows/macos-widget.yml"
+  pull_request:
+    paths:
+      - "native/macos/**"
+      - ".github/workflows/macos-widget.yml"
+
+jobs:
+  build:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install XcodeGen
+        run: brew install xcodegen
+      - name: Generate project
+        working-directory: native/macos
+        run: xcodegen generate
+      - name: Build app and widget
+        working-directory: native/macos
+        run: >-
+          xcodebuild
+          -project TBFTMac.xcodeproj
+          -scheme TBFTMac
+          -configuration Debug
+          -sdk macosx
+          CODE_SIGNING_ALLOWED=NO
+          CODE_SIGNING_REQUIRED=NO
+          build
