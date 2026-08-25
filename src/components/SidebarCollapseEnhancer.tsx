@@ -6,7 +6,7 @@ import { createPortal } from "react-dom";
 const STORAGE_KEY = "tbft-sidebar-collapsed";
 
 export default function SidebarCollapseEnhancer() {
-  const [sidebar, setSidebar] = useState<HTMLElement | null>(null);
+  const [navTarget, setNavTarget] = useState<HTMLElement | null>(null);
   const [collapsed, setCollapsed] = useState(false);
 
   useEffect(() => {
@@ -29,11 +29,11 @@ export default function SidebarCollapseEnhancer() {
     setCollapsed(initialCollapsed);
 
     const inspect = () => {
-      const nextSidebar = document.querySelector<HTMLElement>(".sidebar");
-      if (!nextSidebar) return;
-      setSidebar((current) => current === nextSidebar ? current : nextSidebar);
+      const nav = document.querySelector<HTMLElement>(".sidebar .main-nav");
+      if (!nav) return;
+      setNavTarget((current) => current === nav ? current : nav);
 
-      nextSidebar.querySelectorAll<HTMLButtonElement>(".main-nav .nav-item").forEach((button) => {
+      nav.querySelectorAll<HTMLButtonElement>(".nav-item").forEach((button) => {
         const icon = button.querySelector("span")?.textContent ?? "";
         const label = (button.textContent ?? "").replace(icon, "").trim();
         if (!label) return;
@@ -62,19 +62,23 @@ export default function SidebarCollapseEnhancer() {
     });
   };
 
-  if (!sidebar) return null;
+  if (!navTarget) return null;
+
+  const label = collapsed ? "Expand" : "Collapse";
 
   return createPortal(
     <button
       type="button"
-      className="tbft-sidebar-toggle"
+      className="nav-item tbft-sidebar-toggle"
       onClick={toggle}
-      aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
-      title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+      aria-label={`${label} sidebar`}
+      title={`${label} sidebar`}
+      data-tbft-nav-label={`${label} sidebar`}
       aria-pressed={collapsed}
     >
-      <span aria-hidden="true">{collapsed ? "›" : "‹"}</span>
+      <span aria-hidden="true">{collapsed ? "»" : "«"}</span>
+      {label}
     </button>,
-    sidebar,
+    navTarget,
   );
 }
