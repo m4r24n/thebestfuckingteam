@@ -1,71 +1,30 @@
 import Foundation
-import Security
 
 enum TBFTSharedStore {
-    static let appGroupID = "group.info.marzan.tbft"
     private static let cacheKey = "tbft.widget.state.v1"
-    private static let keychainService = "info.marzan.tbft.widget-session"
-    private static let keychainAccount = "refresh-token"
+    private static let refreshTokenKey = "tbft.widget.refresh-token.v1"
 
-    private static var defaults: UserDefaults {
-        UserDefaults(suiteName: appGroupID) ?? .standard
-    }
-
-    private static var accessGroup: String? {
-        guard let value = Bundle.main.object(forInfoDictionaryKey: "TBFT_KEYCHAIN_ACCESS_GROUP") as? String else {
+    private static var appGroupID: String? {
+        guard let value = Bundle.main.object(forInfoDictionaryKey: "TBFT_SHARED_GROUP_ID") as? String else {
             return nil
         }
         let clean = value.trimmingCharacters(in: .whitespacesAndNewlines)
         return clean.isEmpty ? nil : clean
     }
 
-    private static func keychainQuery() -> [CFString: Any] {
-        var query: [CFString: Any] = [
-            kSecClass: kSecClassGenericPassword,
-            kSecAttrService: keychainService,
-            kSecAttrAccount: keychainAccount,
-        ]
-        if let accessGroup {
-            query[kSecAttrAccessGroup] = accessGroup
-        }
-        return query
+    private static var defaults: UserDefaults {
+        guard let appGroupID else { return .standard }
+        return UserDefaults(suiteName: appGroupID) ?? .standard
     }
 
-    static func saveRefreshToken(_ token: String) throws {
+    static func saveRefreshToken(_ token: String) {
         let clean = token.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !clean.isEmpty else { return }
-
-        var query = keychainQuery()
-        let data = Data(clean.utf8)
-        let attributes: [CFString: Any] = [
-            kSecValueData: data,
-            kSecAttrAccessible: kSecAttrAccessibleAfterFirstUnlock,
-        ]
-
-        let updateStatus = SecItemUpdate(query as CFDictionary, attributes as CFDictionary)
-        if updateStatus == errSecSuccess { return }
-        if updateStatus != errSecItemNotFound {
-            throw NSError(domain: NSOSStatusErrorDomain, code: Int(updateStatus))
-        }
-
-        query[kSecValueData] = data
-        query[kSecAttrAccessible] = kSecAttrAccessibleAfterFirstUnlock
-        let addStatus = SecItemAdd(query as CFDictionary, nil)
-        guard addStatus == errSecSuccess else {
-            throw NSError(domain: NSOSStatusErrorDomain, code: Int(addStatus))
-        }
+        defaults.set(clean, forKey: refreshTokenKey)
     }
 
     static func refreshToken() -> String? {
-        var query = keychainQuery()
-        query[kSecReturnData] = true
-        query[kSecMatchLimit] = kSecMatchLimitOne
-
-        var item: CFTypeRef?
-        let status = SecItemCopyMatching(query as CFDictionary, &item)
-        guard status == errSecSuccess,
-              let data = item as? Data,
-              let token = String(data: data, encoding: .utf8),
+        guard let token = defaults.string(forKey: refreshTokenKey)?.trimmingCharacters(in: .whitespacesAndNewlines),
               !token.isEmpty else {
             return nil
         }
@@ -77,7 +36,7 @@ enum TBFTSharedStore {
     }
 
     static func clearSession() {
-        SecItemDelete(keychainQuery() as CFDictionary)
+        defaults.removeObject(forKey: refreshTokenKey)
         saveState(.disconnected)
     }
 
