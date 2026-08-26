@@ -23,7 +23,7 @@ targets:
         CFBundleDisplayName: TBFT
         LSApplicationCategoryType: public.app-category.productivity
         LSMinimumSystemVersion: $(MACOSX_DEPLOYMENT_TARGET)
-        TBFT_KEYCHAIN_ACCESS_GROUP: $(AppIdentifierPrefix)info.marzan.tbft.shared
+        TBFT_SHARED_GROUP_ID: $(DEVELOPMENT_TEAM).info.marzan.tbft.shared
         CFBundleURLTypes:
           - CFBundleURLName: info.marzan.tbft.macos
             CFBundleURLSchemes:
@@ -33,6 +33,7 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: info.marzan.tbft.macos
         CODE_SIGN_STYLE: Automatic
         CODE_SIGN_ENTITLEMENTS: TBFTMac/TBFTMac.entitlements
+        REGISTER_APP_GROUPS: NO
     dependencies:
       - target: TBFTWidget
         embed: true
@@ -47,7 +48,7 @@ targets:
       path: TBFTWidget/Info.plist
       properties:
         CFBundleDisplayName: TBFT Today
-        TBFT_KEYCHAIN_ACCESS_GROUP: $(AppIdentifierPrefix)info.marzan.tbft.shared
+        TBFT_SHARED_GROUP_ID: $(DEVELOPMENT_TEAM).info.marzan.tbft.shared
         NSExtension:
           NSExtensionPointIdentifier: com.apple.widgetkit-extension
     settings:
@@ -55,6 +56,7 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: info.marzan.tbft.macos.widget
         CODE_SIGN_STYLE: Automatic
         CODE_SIGN_ENTITLEMENTS: TBFTWidget/TBFTWidget.entitlements
+        REGISTER_APP_GROUPS: NO
         APPLICATION_EXTENSION_API_ONLY: YES
         SKIP_INSTALL: YES
 
