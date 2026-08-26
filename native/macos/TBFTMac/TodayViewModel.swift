@@ -30,14 +30,10 @@ final class TodayViewModel: ObservableObject {
     }
 
     func captured(refreshToken: String) {
-        do {
-            try TBFTSharedStore.saveRefreshToken(refreshToken)
-            state.error = nil
-            TBFTSharedStore.saveState(state)
-            Task { await refresh() }
-        } catch {
-            state = TBFTSharedStore.save(error: "TBFT connected, but the widget session could not be stored securely.")
-        }
+        TBFTSharedStore.saveRefreshToken(refreshToken)
+        state.error = nil
+        TBFTSharedStore.saveState(state)
+        Task { await refresh() }
     }
 
     func disconnect() {
