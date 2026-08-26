@@ -54,7 +54,9 @@ struct TBFTTodayWidgetView: View {
     private var taskLimit: Int {
         switch family {
         case .systemSmall: 3
-        default: 6
+        case .systemMedium: 5
+        case .systemLarge: 9
+        default: 5
         }
     }
 
@@ -62,58 +64,126 @@ struct TBFTTodayWidgetView: View {
         entry.state.tasks.prefix(taskLimit)
     }
 
+    private var hiddenTaskCount: Int {
+        max(0, entry.state.tasks.count - visibleTasks.count)
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text("TBFT · TODAY")
-                .font(.system(size: 13, weight: .bold))
-                .foregroundStyle(.white.opacity(0.95))
-
-            Text(countLabel)
-                .font(.system(size: 11))
-                .foregroundStyle(.white.opacity(0.65))
-                .padding(.top, 2)
-                .padding(.bottom, 8)
+            header
 
             if entry.state.tasks.isEmpty {
-                Spacer(minLength: 4)
+                Spacer(minLength: 8)
                 Text(emptyLabel)
-                    .font(.system(size: 13))
-                    .foregroundStyle(.white.opacity(0.75))
+                    .font(.system(size: 13, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.72))
                     .lineLimit(3)
-                Spacer(minLength: 4)
+                Spacer(minLength: 8)
             } else {
-                ForEach(visibleTasks) { task in
-                    HStack(spacing: 8) {
-                        Text("○")
-                        Text(task.displayTitle)
-                            .lineLimit(1)
-                            .truncationMode(.tail)
-                        Spacer(minLength: 0)
-                    }
-                    .font(.system(size: 14))
-                    .foregroundStyle(.white.opacity(0.95))
-                    .padding(.vertical, 3)
-                }
-                Spacer(minLength: 0)
+                taskList
+                Spacer(minLength: 4)
             }
 
-            Text(syncLabel)
-                .font(.system(size: 10))
-                .foregroundStyle(.white.opacity(0.50))
-                .padding(.top, 6)
-                .lineLimit(1)
+            footer
         }
-        .padding(14)
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
+        .widgetAccentable(false)
         .widgetURL(URL(string: "tbftmac://today"))
         .containerBackground(for: .widget) {
-            Color.black.opacity(0.15)
+            Color(red: 0.075, green: 0.078, blue: 0.082)
         }
     }
 
-    private var countLabel: String {
-        let count = entry.state.tasks.count
-        if count == 0 { return "No remaining tasks" }
-        return "\(count) \(count == 1 ? "task remaining" : "tasks remaining")"
+    private var header: some View {
+        HStack(alignment: .top, spacing: 12) {
+            VStack(alignment: .leading, spacing: 1) {
+                Text("TBFT")
+                    .font(.system(size: 13, weight: .bold, design: .rounded))
+                    .tracking(0.8)
+                    .foregroundStyle(.white.opacity(0.98))
+
+                Text("TODAY")
+                    .font(.system(size: 9, weight: .semibold, design: .rounded))
+                    .tracking(1.1)
+                    .foregroundStyle(.white.opacity(0.45))
+            }
+
+            Spacer(minLength: 8)
+
+            VStack(alignment: .trailing, spacing: 0) {
+                Text("\(entry.state.tasks.count)")
+                    .font(.system(size: 25, weight: .semibold, design: .rounded))
+                    .monospacedDigit()
+                    .foregroundStyle(.white.opacity(0.98))
+                    .contentTransition(.numericText())
+
+                Text(entry.state.tasks.count == 1 ? "TASK LEFT" : "TASKS LEFT")
+                    .font(.system(size: 8, weight: .semibold, design: .rounded))
+                    .tracking(0.7)
+                    .foregroundStyle(.white.opacity(0.45))
+            }
+        }
+        .padding(.bottom, family == .systemSmall ? 9 : 8)
+    }
+
+    private var taskList: some View {
+        VStack(alignment: .leading, spacing: family == .systemLarge ? 7 : 4) {
+            ForEach(visibleTasks) { task in
+                HStack(spacing: 8) {
+                    Circle()
+                        .stroke(.white.opacity(0.52), lineWidth: 1.25)
+                        .frame(width: 9, height: 9)
+
+                    if task.carried {
+                        Text("↪")
+                            .font(.system(size: 10, weight: .medium))
+                            .foregroundStyle(.white.opacity(0.46))
+                    }
+
+                    Text(task.title)
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.92))
+                        .lineLimit(1)
+                        .truncationMode(.tail)
+
+                    Spacer(minLength: 6)
+
+                    if let deadline = cleanDeadline(task.deadline) {
+                        Text(deadline)
+                            .font(.system(size: 10, weight: .medium, design: .rounded))
+                            .monospacedDigit()
+                            .foregroundStyle(.white.opacity(0.48))
+                    }
+                }
+                .frame(minHeight: family == .systemLarge ? 19 : 17)
+            }
+        }
+    }
+
+    private var footer: some View {
+        HStack(spacing: 8) {
+            if hiddenTaskCount > 0 {
+                Text("+\(hiddenTaskCount) more")
+                    .font(.system(size: 10, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.48))
+            } else {
+                Text(syncLabel)
+                    .font(.system(size: 10, weight: .regular))
+                    .foregroundStyle(.white.opacity(0.38))
+                    .lineLimit(1)
+            }
+
+            Spacer(minLength: 0)
+
+            if hiddenTaskCount > 0, let updatedAt = entry.state.updatedAt {
+                Text("Updated \(Self.timeFormatter.string(from: updatedAt))")
+                    .font(.system(size: 10, weight: .regular))
+                    .foregroundStyle(.white.opacity(0.34))
+                    .lineLimit(1)
+            }
+        }
+        .padding(.top, 5)
     }
 
     private var emptyLabel: String {
@@ -128,9 +198,15 @@ struct TBFTTodayWidgetView: View {
             return "Sync needs attention · open TBFT"
         }
         if let updatedAt = entry.state.updatedAt {
-            return "Updated \(Self.timeFormatter.string(from: updatedAt)) · auto refresh"
+            return "Updated \(Self.timeFormatter.string(from: updatedAt))"
         }
         return "Updates automatically"
+    }
+
+    private func cleanDeadline(_ value: String?) -> String? {
+        guard let value else { return nil }
+        let clean = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        return clean.isEmpty ? nil : clean
     }
 
     private static let timeFormatter: DateFormatter = {
@@ -152,5 +228,6 @@ struct TBFTTodayWidget: Widget {
         .description("Your remaining TBFT tasks for today.")
         .supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
         .contentMarginsDisabled()
+        .containerBackgroundRemovable(false)
     }
 }
