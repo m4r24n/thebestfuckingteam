@@ -95,16 +95,36 @@ export default function GoogleDriveSettings() {
   const sync = async () => {
     if (!workspaceId || busy) return;
     setBusy(true);
-    setMessage("");
+    setMessage("Preparing Google Drive folder sync…");
     try {
-      const response = await fetch("/api/google-drive/sync", {
-        method: "POST",
-        headers: await authHeaders(),
-        body: JSON.stringify({ workspaceId }),
-      });
-      const body = await response.json() as { synced?: number; error?: string };
-      if (!response.ok) throw new Error(body.error ?? "Could not sync Drive folders.");
-      setMessage(`${body.synced ?? 0} TBFT folder${body.synced === 1 ? "" : "s"} synced with Google Drive.`);
+      let offset = 0;
+      let synced = 0;
+      let total = 0;
+      let hasMore = true;
+
+      while (hasMore) {
+        const response = await fetch("/api/google-drive/sync", {
+          method: "POST",
+          headers: await authHeaders(),
+          body: JSON.stringify({ workspaceId, mode: "full", offset }),
+        });
+        const body = await response.json() as {
+          synced?: number;
+          total?: number;
+          hasMore?: boolean;
+          nextOffset?: number;
+          error?: string;
+        };
+        if (!response.ok) throw new Error(body.error ?? "Could not sync Drive folders.");
+
+        synced += body.synced ?? 0;
+        total = body.total ?? total;
+        offset = body.nextOffset ?? offset + (body.synced ?? 0);
+        hasMore = Boolean(body.hasMore);
+        setMessage(`Syncing Google Drive folders… ${Math.min(offset, total || offset)}${total ? ` / ${total}` : ""}`);
+      }
+
+      setMessage(`${synced} TBFT folder${synced === 1 ? "" : "s"} synced with Google Drive.`);
       await load();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : String(error));
