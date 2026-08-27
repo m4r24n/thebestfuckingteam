@@ -16,10 +16,7 @@ type Reminder = {
   updated_at: string;
 };
 
-type Member = {
-  id: string;
-  name: string;
-};
+type Member = { id: string; name: string };
 
 type ColumnTarget = {
   ownerId: string;
@@ -65,6 +62,7 @@ export default function TodayRemindersEnhancer() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const targetSignature = useRef("");
+  const mountSequence = useRef(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -129,26 +127,35 @@ export default function TodayRemindersEnhancer() {
         const taskList = column.querySelector<HTMLElement>(":scope > .task-list");
         if (!owner || !taskList) return;
 
-        let topMount = column.querySelector<HTMLElement>(`:scope > .tbft-reminder-top-mount[data-owner-id="${owner.id}"]`);
+        // Remove mounts from the first version, where reminders occupied their own
+        // section outside the task list and reduced the usable task-board area.
+        column.querySelectorAll<HTMLElement>(":scope > .tbft-reminder-top-mount, :scope > .tbft-reminder-bottom-mount")
+          .forEach((legacyMount) => legacyMount.remove());
+
+        let topMount = taskList.querySelector<HTMLElement>(`:scope > .tbft-reminder-top-mount[data-owner-id="${owner.id}"]`);
         if (!topMount) {
           topMount = document.createElement("div");
           topMount.className = "tbft-reminder-top-mount";
           topMount.dataset.ownerId = owner.id;
-          column.insertBefore(topMount, taskList);
+          topMount.dataset.mountKey = `${owner.id}-top-${++mountSequence.current}`;
+          taskList.insertBefore(topMount, taskList.firstChild);
         }
 
-        let bottomMount = column.querySelector<HTMLElement>(`:scope > .tbft-reminder-bottom-mount[data-owner-id="${owner.id}"]`);
+        let bottomMount = taskList.querySelector<HTMLElement>(`:scope > .tbft-reminder-bottom-mount[data-owner-id="${owner.id}"]`);
         if (!bottomMount) {
           bottomMount = document.createElement("div");
           bottomMount.className = "tbft-reminder-bottom-mount";
           bottomMount.dataset.ownerId = owner.id;
-          taskList.insertAdjacentElement("afterend", bottomMount);
+          bottomMount.dataset.mountKey = `${owner.id}-bottom-${++mountSequence.current}`;
+          taskList.appendChild(bottomMount);
         }
 
         next.push({ ownerId: owner.id, ownerName, topMount, bottomMount });
       });
 
-      const signature = next.map((item) => `${item.ownerId}:${item.ownerName}`).join("|");
+      const signature = next
+        .map((item) => `${item.ownerId}:${item.topMount.dataset.mountKey}:${item.bottomMount.dataset.mountKey}`)
+        .join("|");
       if (signature !== targetSignature.current) {
         targetSignature.current = signature;
         setTargets(next);
@@ -181,9 +188,7 @@ export default function TodayRemindersEnhancer() {
     setReminders((data ?? []) as Reminder[]);
   }, [boardDate, workspaceId]);
 
-  useEffect(() => {
-    void loadReminders();
-  }, [loadReminders]);
+  useEffect(() => { void loadReminders(); }, [loadReminders]);
 
   useEffect(() => {
     if (!workspaceId) return;
@@ -264,25 +269,18 @@ export default function TodayRemindersEnhancer() {
       {targets.map((target) => {
         const ownerReminders = reminders.filter((reminder) => reminder.owner_user_id === target.ownerId);
         return createPortal(
-          ownerReminders.length ? (
-            <section className="today-reminders" aria-label={`${target.ownerName} reminders`}>
-              <div className="today-reminders-heading">
-                <span>REMINDERS</span>
-                <small>{ownerReminders.length}</small>
-              </div>
-              <div className="today-reminder-scroll">
-                {ownerReminders.map((reminder) => (
-                  <article className="today-reminder-card" key={reminder.id}>
-                    <button className="today-reminder-main" type="button" onClick={() => openEditor(target.ownerId, target.ownerName, reminder)}>
-                      <strong>{reminder.title}</strong>
-                      {reminder.note && <span>{reminder.note}</span>}
-                    </button>
-                    <button className="today-reminder-remove" type="button" aria-label={`Delete ${reminder.title}`} onClick={() => void remove(reminder)}>×</button>
-                  </article>
-                ))}
-              </div>
-            </section>
-          ) : null,
+          <>
+            {ownerReminders.map((reminder) => (
+              <article className="today-reminder-card" key={reminder.id}>
+                <button className="today-reminder-main" type="button" onClick={() => openEditor(target.ownerId, target.ownerName, reminder)}>
+                  <span className="today-reminder-label">REMINDER</span>
+                  <strong>{reminder.title}</strong>
+                  {reminder.note && <span className="today-reminder-note">{reminder.note}</span>}
+                </button>
+                <button className="today-reminder-remove" type="button" aria-label={`Delete ${reminder.title}`} onClick={() => void remove(reminder)}>×</button>
+              </article>
+            ))}
+          </>,
           target.topMount,
           `reminders-${target.ownerId}`,
         );
@@ -303,7 +301,7 @@ export default function TodayRemindersEnhancer() {
               <div>
                 <span className="eyebrow">REMINDER FOR {editor.ownerName}</span>
                 <h3>{editor.reminder ? "Edit reminder" : "Add reminder"}</h3>
-                <p>It will appear above {editor.ownerName}&apos;s task cards only on the selected day.</p>
+                <p>On that day it will appear as the first card in {editor.ownerName}&apos;s task list.</p>
               </div>
               <button type="button" className="icon-button" disabled={busy} onClick={() => setEditor(null)}>×</button>
             </div>
