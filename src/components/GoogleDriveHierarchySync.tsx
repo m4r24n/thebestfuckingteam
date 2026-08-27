@@ -104,12 +104,12 @@ export default function GoogleDriveHierarchySync() {
         .on(
           "postgres_changes",
           { event: "*", schema: "public", table: "tasks", filter: `workspace_id=eq.${workspaceId}` },
-          schedule,
+          () => schedule(),
         )
         .on(
           "postgres_changes",
           { event: "*", schema: "public", table: "projects", filter: `workspace_id=eq.${workspaceId}` },
-          schedule,
+          () => schedule(),
         )
         .subscribe();
       cleanupChannel = () => { void supabase.removeChannel(channel); };
