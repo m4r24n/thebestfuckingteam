@@ -14,6 +14,7 @@ import "./workspace-brand.css";
 import "./task-files.css";
 import "./task-detail.css";
 import "./today-accent.css";
+import "./today-reminders.css";
 import "./sidebar-collapse.css";
 import "./calendar-sync.css";
 

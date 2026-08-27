@@ -15,6 +15,7 @@ import ProjectFileRecoveryEnhancer from "@/components/ProjectFileRecoveryEnhance
 import TaskDetailEnhancer from "@/components/TaskDetailEnhancer";
 import SidebarCollapseEnhancer from "@/components/SidebarCollapseEnhancer";
 import CalendarSyncEnhancer from "@/components/CalendarSyncEnhancer";
+import TodayRemindersEnhancer from "@/components/TodayRemindersEnhancer";
 
 export default function Home() {
   return (
@@ -34,6 +35,7 @@ export default function Home() {
       <TaskDetailEnhancer />
       <SidebarCollapseEnhancer />
       <CalendarSyncEnhancer />
+      <TodayRemindersEnhancer />
     </>
   );
 }

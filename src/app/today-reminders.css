@@ -1,0 +1,215 @@
+.tbft-reminder-top-mount:empty {
+  display: none;
+}
+
+.today-reminders {
+  margin: .72rem 0 .18rem;
+  padding-bottom: .12rem;
+}
+
+.today-reminders-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .7rem;
+  margin: 0 .12rem .42rem;
+  color: var(--dash-faint, var(--text-faint));
+  font-family: var(--dash-mono, var(--font));
+  font-size: .61rem;
+  font-weight: 680;
+  letter-spacing: .1em;
+}
+
+.today-reminders-heading small {
+  min-width: 1.25rem;
+  height: 1.25rem;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--dash-line, var(--line));
+  border-radius: 99rem;
+  font-size: .58rem;
+  letter-spacing: 0;
+}
+
+.today-reminder-scroll {
+  display: flex;
+  gap: .52rem;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: .02rem .06rem .36rem;
+  scroll-snap-type: x proximity;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(105, 99, 86, .22) transparent;
+}
+
+.today-reminder-scroll::-webkit-scrollbar {
+  height: .34rem;
+}
+
+.today-reminder-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.today-reminder-scroll::-webkit-scrollbar-thumb {
+  border-radius: 99rem;
+  background: rgba(105, 99, 86, .20);
+}
+
+.today-reminder-card {
+  position: relative;
+  flex: 0 0 min(16.5rem, 76%);
+  min-width: 11.5rem;
+  scroll-snap-align: start;
+  border: 1px solid color-mix(in srgb, var(--dash-line-strong, var(--line-strong)), transparent 18%);
+  border-left: 2px solid color-mix(in srgb, var(--accent), transparent 38%);
+  border-radius: .88rem;
+  background: color-mix(in srgb, var(--dash-task, var(--surface-raised)), var(--accent-soft) 12%);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.38);
+}
+
+.today-reminder-main {
+  width: 100%;
+  min-height: 5.1rem;
+  padding: .72rem 2rem .7rem .78rem;
+  border: 0;
+  background: transparent;
+  color: var(--dash-text, var(--text));
+  display: grid;
+  align-content: start;
+  gap: .34rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.today-reminder-main strong {
+  font-family: var(--dash-mono, var(--font));
+  font-size: .82rem;
+  line-height: 1.38;
+  font-weight: 590;
+}
+
+.today-reminder-main span {
+  color: var(--dash-soft, var(--text-soft));
+  font-size: .7rem;
+  line-height: 1.42;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  overflow: hidden;
+}
+
+.today-reminder-card:hover {
+  border-color: color-mix(in srgb, var(--accent), transparent 58%);
+  background: color-mix(in srgb, var(--dash-task-hover, var(--surface-raised)), var(--accent-soft) 17%);
+}
+
+.today-reminder-remove {
+  position: absolute;
+  top: .42rem;
+  right: .42rem;
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--dash-faint, var(--text-faint));
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.today-reminder-remove:hover {
+  background: color-mix(in srgb, var(--danger-soft), transparent 25%);
+  color: var(--danger);
+}
+
+.tbft-reminder-bottom-mount {
+  margin-top: .72rem;
+}
+
+.add-reminder-flow {
+  position: static;
+  width: 100%;
+  min-height: 2.5rem;
+  padding: .55rem .8rem;
+  border: 1px dashed var(--dash-line-strong, var(--line-strong));
+  border-radius: .78rem;
+  background: transparent;
+  color: var(--dash-soft, var(--text-soft));
+  cursor: pointer;
+  font-family: var(--dash-mono, var(--font));
+  font-size: .69rem;
+  font-weight: 550;
+  text-align: left;
+}
+
+.add-reminder-flow span {
+  display: inline-block;
+  margin-right: .4rem;
+  color: var(--dash-faint, var(--text-faint));
+}
+
+.add-reminder-flow:hover {
+  border-style: solid;
+  border-color: color-mix(in srgb, var(--accent), transparent 52%);
+  background: color-mix(in srgb, var(--dash-task, var(--surface-subtle)), transparent 35%);
+  color: var(--dash-text, var(--text));
+}
+
+.reminder-editor-modal {
+  width: min(540px, calc(100vw - 2rem));
+}
+
+.reminder-editor-fields {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(10rem, .58fr);
+  gap: .75rem;
+}
+
+.reminder-editor-fields label {
+  display: grid;
+  gap: .36rem;
+  color: var(--text-soft);
+  font-size: .74rem;
+  font-weight: 620;
+}
+
+.reminder-editor-fields .full-field {
+  grid-column: 1 / -1;
+}
+
+.reminder-editor-fields input,
+.reminder-editor-fields textarea {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: .7rem;
+  background: var(--surface-raised);
+  color: var(--text);
+  padding: .72rem .78rem;
+}
+
+.reminder-editor-fields textarea {
+  resize: vertical;
+  min-height: 6.4rem;
+  line-height: 1.5;
+}
+
+html[data-tbft-dark="true"] .today-reminder-card {
+  box-shadow: none;
+}
+
+@media (max-width: 760px) {
+  .today-reminder-card {
+    flex-basis: min(15rem, 82%);
+  }
+
+  .reminder-editor-fields {
+    grid-template-columns: 1fr;
+  }
+
+  .reminder-editor-fields .full-field {
+    grid-column: auto;
+  }
+}
