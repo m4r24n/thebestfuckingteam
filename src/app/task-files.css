@@ -6,6 +6,22 @@
 .task-file-upload { min-height: 2rem; padding: 0 .72rem; border: 1px solid var(--line-strong); border-radius: .58rem; background: var(--surface-raised); display: inline-flex; align-items: center; justify-content: center; font-size: .7rem; font-weight: 650; cursor: pointer; white-space: nowrap; }
 .task-file-upload input { display: none; }
 .task-file-upload.disabled { opacity: .5; cursor: wait; }
+
+.task-note-editor { display: grid; gap: .52rem; padding: .7rem; border: 1px solid color-mix(in srgb, var(--line), var(--theme-accent) 12%); border-radius: .68rem; background: color-mix(in srgb, var(--surface-raised) 95%, var(--theme-accent) 5%); }
+.task-note-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: .75rem; }
+.task-note-heading > div { display: grid; gap: .12rem; }
+.task-note-heading strong { font-size: .75rem; }
+.task-note-status { color: var(--text-faint); font-size: .61rem; white-space: nowrap; }
+.task-note-status.state-saving { color: color-mix(in srgb, var(--text-soft), var(--theme-accent) 35%); }
+.task-note-status.state-error { color: var(--danger); }
+.task-note-editor textarea { width: 100%; min-height: 8rem; resize: vertical; border: 1px solid color-mix(in srgb, var(--line-strong), transparent 10%); border-radius: .62rem; background: color-mix(in srgb, var(--surface-subtle) 97%, var(--theme-accent) 3%); color: var(--text); padding: .68rem .72rem; font: inherit; font-size: .74rem; line-height: 1.55; outline: none; }
+.task-note-editor textarea:focus { border-color: color-mix(in srgb, var(--theme-accent), var(--line-strong) 42%); box-shadow: 0 0 0 2px color-mix(in srgb, var(--theme-accent), transparent 86%); }
+.task-note-editor textarea:disabled { opacity: .72; cursor: default; }
+.task-note-editor textarea::placeholder { color: var(--text-faint); }
+.task-note-footer { display: flex; align-items: center; justify-content: space-between; gap: .7rem; }
+.task-note-footer > span { color: var(--text-faint); font-size: .61rem; line-height: 1.4; }
+.task-note-footer button { flex: 0 0 auto; min-height: 1.9rem; }
+
 .task-files-list { display: grid; gap: .35rem; }
 .task-file-row { min-width: 0; min-height: 2.35rem; padding: .3rem .35rem .3rem .6rem; border: 1px solid color-mix(in srgb, var(--line), transparent 15%); border-radius: .58rem; background: color-mix(in srgb, var(--surface-raised) 94%, var(--theme-accent) 6%); display: flex; align-items: center; gap: .55rem; }
 .task-file-name { flex: 1; min-width: 0; padding: 0; border: 0; background: transparent; color: var(--text); text-align: left; font-size: .72rem; font-weight: 620; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; cursor: pointer; }
@@ -23,4 +39,11 @@
 .project-recovered-list strong { font-size: .72rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .project-recovered-list span, .project-recovered-files > p { margin: 0; color: var(--text-faint); font-size: .62rem; }
 
-@media (max-width: 760px) { .task-files-heading { align-items: flex-start; } .task-file-upload { min-height: 2.35rem; } .task-file-row { min-height: 2.7rem; } }
+@media (max-width: 760px) {
+  .task-files-heading { align-items: flex-start; }
+  .task-file-upload { min-height: 2.35rem; }
+  .task-file-row { min-height: 2.7rem; }
+  .task-note-heading, .task-note-footer { align-items: stretch; flex-direction: column; }
+  .task-note-status { white-space: normal; }
+  .task-note-footer button { width: 100%; min-height: 2.25rem; }
+}
