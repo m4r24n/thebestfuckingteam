@@ -8,6 +8,8 @@ export default function TaskCompletionPdfSync() {
   useEffect(() => {
     let cancelled = false;
     const attempted = new Set<string>();
+    const completionState = new Map<string, string | null>();
+    const retryTimers = new Set<number>();
     let cleanupChannel: (() => void) | null = null;
 
     const run = async () => {
@@ -39,6 +41,34 @@ export default function TaskCompletionPdfSync() {
         }
       };
 
+      const exportAfterCompletion = (taskId: string, completedAt: string) => {
+        void exportOne(taskId, completedAt);
+
+        // Completion can race the note editor's final autosave. Retry only this
+        // completion event; ordinary note edits must never generate PDFs.
+        for (const delay of [1_000, 3_000]) {
+          const timer = window.setTimeout(() => {
+            retryTimers.delete(timer);
+            void exportOne(taskId, completedAt);
+          }, delay);
+          retryTimers.add(timer);
+        }
+      };
+
+      const { data: taskStates, error: taskStatesError } = await supabase
+        .from("tasks")
+        .select("id, completed_at")
+        .eq("workspace_id", workspaceId);
+
+      if (taskStatesError) {
+        console.warn("TBFT task completion state could not be loaded", taskStatesError);
+        return;
+      }
+
+      for (const row of taskStates ?? []) {
+        completionState.set(row.id as string, (row.completed_at as string | null) ?? null);
+      }
+
       const { data: completedTasks } = await supabase
         .from("tasks")
         .select("id, completed_at, completion_note")
@@ -61,7 +91,10 @@ export default function TaskCompletionPdfSync() {
           { event: "UPDATE", schema: "public", table: "tasks", filter: `workspace_id=eq.${workspaceId}` },
           (payload) => {
             const row = payload.new as { id?: string; completed_at?: string | null };
-            if (row.id && row.completed_at) void exportOne(row.id, row.completed_at);
+            if (!row.id) return;
+            const wasCompleted = Boolean(completionState.get(row.id));
+            completionState.set(row.id, row.completed_at ?? null);
+            if (!wasCompleted && row.completed_at) exportAfterCompletion(row.id, row.completed_at);
           },
         )
         .subscribe();
@@ -72,6 +105,8 @@ export default function TaskCompletionPdfSync() {
     void run();
     return () => {
       cancelled = true;
+      for (const timer of retryTimers) window.clearTimeout(timer);
+      retryTimers.clear();
       cleanupChannel?.();
     };
   }, []);
