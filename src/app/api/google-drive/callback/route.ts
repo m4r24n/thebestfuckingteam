@@ -7,7 +7,6 @@ import {
   googleAccountEmail,
   googleRedirectUri,
   shareGoogleDriveRootWithWorkspace,
-  syncGoogleDriveHierarchy,
   verifyGoogleOAuthState,
 } from "@/lib/googleDriveServer";
 
@@ -76,8 +75,10 @@ export async function GET(request: Request) {
     if (upsertError) throw new Error(upsertError.message);
 
     await shareGoogleDriveRootWithWorkspace(state.workspaceId, root.id, tokens.accessToken, accountEmail);
-    await syncGoogleDriveHierarchy(state.workspaceId, tokens.accessToken, root.id);
 
+    // Folder reconciliation is intentionally deferred to the client-side incremental
+    // sync after redirect. A workspace can contain hundreds of task folders, and doing
+    // a full serial Drive walk inside the OAuth callback can exceed the serverless limit.
     return NextResponse.redirect(new URL("/?drive=connected", origin));
   } catch (error) {
     const message = encodeURIComponent(error instanceof Error ? error.message : "Google Drive connection failed.");
