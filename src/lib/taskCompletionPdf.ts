@@ -362,7 +362,9 @@ export async function saveTaskCompletionPdf(
     note,
     metadata,
   });
-  const file = new File([bytes], filename, { type: "application/pdf", lastModified: Date.now() });
+  const pdfBuffer = new ArrayBuffer(bytes.byteLength);
+  new Uint8Array(pdfBuffer).set(bytes);
+  const file = new File([pdfBuffer], filename, { type: "application/pdf", lastModified: Date.now() });
   const space = await ensureTaskFileSpace(supabase, task.id, task.workspace_id);
   await uploadProjectFile(supabase, {
     workspaceId: task.workspace_id,
