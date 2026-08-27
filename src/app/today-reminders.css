@@ -1,6 +1,18 @@
-.tbft-reminder-top-mount,
+.tbft-reminder-top-mount {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: .58rem;
+  min-width: 0;
+}
+
 .tbft-reminder-bottom-mount {
-  display: contents;
+  display: block;
+  min-width: 0;
+}
+
+.tbft-reminder-top-mount:empty,
+.tbft-reminder-bottom-mount:empty {
+  display: none;
 }
 
 .today-reminder-card {
