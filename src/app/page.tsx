@@ -10,6 +10,7 @@ import GoogleDriveHierarchySync from "@/components/GoogleDriveHierarchySync";
 import FuckingDarkEnhancer from "@/components/FuckingDarkEnhancer";
 import WorkspaceBrandEnhancer from "@/components/WorkspaceBrandEnhancer";
 import TaskFilesEnhancer from "@/components/TaskFilesEnhancer";
+import TaskCompletionPdfSync from "@/components/TaskCompletionPdfSync";
 import ProjectFileRecoveryEnhancer from "@/components/ProjectFileRecoveryEnhancer";
 import TaskDetailEnhancer from "@/components/TaskDetailEnhancer";
 import SidebarCollapseEnhancer from "@/components/SidebarCollapseEnhancer";
@@ -28,6 +29,7 @@ export default function Home() {
       <FuckingDarkEnhancer />
       <WorkspaceBrandEnhancer />
       <TaskFilesEnhancer />
+      <TaskCompletionPdfSync />
       <ProjectFileRecoveryEnhancer />
       <TaskDetailEnhancer />
       <SidebarCollapseEnhancer />
