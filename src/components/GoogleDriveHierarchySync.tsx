@@ -63,6 +63,11 @@ export default function GoogleDriveHierarchySync() {
       const connected = Array.isArray(status) && status.some((item) => item.provider === "google_drive");
       if (!connected || cancelled) return;
 
+      const schedule = (delay = 700) => {
+        if (timer) window.clearTimeout(timer);
+        timer = window.setTimeout(() => void sync(), delay);
+      };
+
       const sync = async () => {
         if (cancelled) return;
         if (syncing) {
@@ -75,11 +80,15 @@ export default function GoogleDriveHierarchySync() {
           const { data: session } = await supabase.auth.getSession();
           const token = session.session?.access_token;
           if (!token || cancelled) return;
-          await fetch("/api/google-drive/sync", {
+          const response = await fetch("/api/google-drive/sync", {
             method: "POST",
             headers: { authorization: `Bearer ${token}`, "content-type": "application/json" },
-            body: JSON.stringify({ workspaceId }),
-          }).catch(() => undefined);
+            body: JSON.stringify({ workspaceId, mode: "incremental" }),
+          }).catch(() => null);
+          if (response?.ok) {
+            const body = await response.json().catch(() => ({})) as { hasMore?: boolean };
+            if (body.hasMore && !cancelled) schedule(1_200);
+          }
         } finally {
           syncing = false;
           if (rerunRequested && !cancelled) {
@@ -87,11 +96,6 @@ export default function GoogleDriveHierarchySync() {
             schedule();
           }
         }
-      };
-
-      const schedule = () => {
-        if (timer) window.clearTimeout(timer);
-        timer = window.setTimeout(() => void sync(), 700);
       };
 
       void sync();
