@@ -31,7 +31,8 @@ export default function TaskCompletionPdfSync() {
         if (attempted.has(key) || cancelled) return;
         attempted.add(key);
         try {
-          await saveTaskCompletionPdf(supabase, taskId, completedAt, userId);
+          const filename = await saveTaskCompletionPdf(supabase, taskId, completedAt, userId);
+          if (!filename) attempted.delete(key);
         } catch (error) {
           attempted.delete(key);
           console.warn("TBFT task note PDF export is pending", error);
