@@ -261,7 +261,7 @@ export default function RecurringTaskEnhancer() {
               <div>
                 <span className="eyebrow">REPEATING TASKS</span>
                 <h3>Routines</h3>
-                <p>Manage recurring series without cluttering the Today dashboard.</p>
+                <p>Routines do not sync with Google Drive. If you want to keep notes, upload files, or track work in Drive, create a new task or project and continue there.</p>
               </div>
               <button type="button" className="icon-button" onClick={() => setShowRoutines(false)}>×</button>
             </div>
