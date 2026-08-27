@@ -68,6 +68,21 @@ export default function TaskFilesEnhancer() {
     setFiles(await listTaskFiles(supabase, resolved.id));
   }, []);
 
+  const persistNote = useCallback(async (resolved: ResolvedTask, value: string) => {
+    if (resolved.completedAt || value === lastSavedNote.current) return;
+    const supabase = getSupabaseClient();
+    if (!supabase) return;
+    setNoteState("saving");
+    const { error } = await supabase.from("tasks").update({ completion_note: value }).eq("id", resolved.id);
+    if (error) {
+      setNoteState("error");
+      setMessage(error.message);
+      return;
+    }
+    lastSavedNote.current = value;
+    setNoteState("saved");
+  }, []);
+
   useEffect(() => {
     const inspect = () => {
       const form = document.querySelector<HTMLFormElement>("form.task-editor");
@@ -144,23 +159,9 @@ export default function TaskFilesEnhancer() {
 
   useEffect(() => {
     if (!task || task.completedAt || note === lastSavedNote.current) return;
-    const timer = window.setTimeout(() => {
-      void (async () => {
-        const supabase = getSupabaseClient();
-        if (!supabase) return;
-        setNoteState("saving");
-        const { error } = await supabase.from("tasks").update({ completion_note: note }).eq("id", task.id);
-        if (error) {
-          setNoteState("error");
-          setMessage(error.message);
-          return;
-        }
-        lastSavedNote.current = note;
-        setNoteState("saved");
-      })();
-    }, 650);
+    const timer = window.setTimeout(() => void persistNote(task, note), 650);
     return () => window.clearTimeout(timer);
-  }, [note, task]);
+  }, [note, persistNote, task]);
 
   const upload = async (picked: FileList | null) => {
     const pickedFiles = Array.from(picked ?? []);
@@ -267,6 +268,7 @@ export default function TaskFilesEnhancer() {
           value={note}
           disabled={Boolean(task.completedAt)}
           onChange={(event) => setNote(event.target.value)}
+          onBlur={() => void persistNote(task, note)}
           placeholder="Keep adding notes here while you work. TBFT will turn them into a structured PDF when you complete the task."
           rows={7}
         />
