@@ -84,6 +84,7 @@ export type Task = {
   priority: "low" | "normal" | "high";
   projectId?: string;
   projectNodeId?: string;
+  completionNote?: string;
   completedAt?: string;
   deletedAt?: string;
   createdAt: string;
