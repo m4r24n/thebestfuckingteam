@@ -13,8 +13,6 @@ import {
 import { storageProviderLabel } from "@/lib/storageProviders";
 import type { ProjectFile, ProjectFileSpace } from "@/lib/types";
 
-type WorkspaceTab = "overview" | "documents" | "timeline";
-
 type ActiveProject = {
   id: string;
   workspaceId: string;
@@ -56,47 +54,52 @@ function dateTime(value: string): string {
 }
 
 export default function ProjectWorkspaceEnhancer() {
-  const [workspaceEl, setWorkspaceEl] = useState<HTMLElement | null>(null);
-  const [tabsMount, setTabsMount] = useState<HTMLElement | null>(null);
-  const [contentMount, setContentMount] = useState<HTMLElement | null>(null);
+  const [filesMount, setFilesMount] = useState<HTMLElement | null>(null);
+  const [activityMount, setActivityMount] = useState<HTMLElement | null>(null);
   const [project, setProject] = useState<ActiveProject | null>(null);
-  const [tab, setTab] = useState<WorkspaceTab>("overview");
   const [spaces, setSpaces] = useState<ProjectFileSpace[]>([]);
   const [files, setFiles] = useState<ProjectFile[]>([]);
   const [timeline, setTimeline] = useState<TimelineItem[]>([]);
   const [selectedSpaceId, setSelectedSpaceId] = useState("all");
   const [query, setQuery] = useState("");
   const [busy, setBusy] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [filesLoading, setFilesLoading] = useState(false);
+  const [activityLoading, setActivityLoading] = useState(false);
   const [docsUnavailable, setDocsUnavailable] = useState(false);
   const [message, setMessage] = useState("");
-  const currentWorkspace = useRef<HTMLElement | null>(null);
+  const currentProjectId = useRef("");
 
   useEffect(() => {
     const inspect = () => {
-      const next = document.querySelector<HTMLElement>(".project-workspace");
-      if (next === currentWorkspace.current) return;
+      const workspace = document.querySelector<HTMLElement>(".project-workspace-redesign");
+      const projectId = workspace?.dataset.projectId ?? "";
+      const workspaceId = workspace?.dataset.workspaceId ?? "";
+      const name = workspace?.dataset.projectName ?? "";
+      const nextFilesMount = workspace?.querySelector<HTMLElement>(".project-files-mount") ?? null;
+      const nextActivityMount = workspace?.querySelector<HTMLElement>(".project-activity-mount") ?? null;
 
-      currentWorkspace.current = next;
-      setWorkspaceEl(next);
-      setTabsMount(null);
-      setContentMount(null);
+      if (!workspace || !projectId || !workspaceId || !name) {
+        if (!currentProjectId.current) return;
+        currentProjectId.current = "";
+        setProject(null);
+        setFilesMount(null);
+        setActivityMount(null);
+        return;
+      }
 
-      document.querySelectorAll(".tbft-workspace-v2-mount").forEach((item) => item.remove());
-      if (!next) return;
+      setFilesMount((current) => current === nextFilesMount ? current : nextFilesMount);
+      setActivityMount((current) => current === nextActivityMount ? current : nextActivityMount);
+      if (currentProjectId.current === projectId) return;
 
-      const anchor = next.querySelector<HTMLElement>(".large-progress")
-        ?? next.querySelector<HTMLElement>(".project-toolbar");
-      if (!anchor) return;
-
-      const tabs = document.createElement("div");
-      tabs.className = "tbft-workspace-v2-mount tbft-workspace-v2-tabs-mount";
-      const content = document.createElement("div");
-      content.className = "tbft-workspace-v2-mount tbft-workspace-v2-content-mount";
-      anchor.parentElement?.insertBefore(tabs, anchor);
-      anchor.parentElement?.insertBefore(content, anchor);
-      setTabsMount(tabs);
-      setContentMount(content);
+      currentProjectId.current = projectId;
+      setProject({ id: projectId, workspaceId, name });
+      setSpaces([]);
+      setFiles([]);
+      setTimeline([]);
+      setSelectedSpaceId("all");
+      setQuery("");
+      setMessage("");
+      setDocsUnavailable(false);
     };
 
     inspect();
@@ -105,73 +108,11 @@ export default function ProjectWorkspaceEnhancer() {
     return () => observer.disconnect();
   }, []);
 
-  useEffect(() => {
-    if (!workspaceEl) {
-      setProject(null);
-      return;
-    }
-
-    let cancelled = false;
-    const resolve = async () => {
-      const supabase = getSupabaseClient();
-      if (!supabase) return;
-      const activeName = workspaceEl.querySelector<HTMLElement>(".project-identity h3")?.textContent?.trim();
-      const description = workspaceEl.querySelector<HTMLElement>(".project-identity p")?.textContent?.trim() ?? "";
-      if (!activeName) return;
-
-      const { data: auth } = await supabase.auth.getUser();
-      const uid = auth.user?.id;
-      if (!uid) return;
-      const { data: membership } = await supabase
-        .from("workspace_members")
-        .select("workspace_id")
-        .eq("user_id", uid)
-        .limit(1)
-        .maybeSingle();
-      if (!membership) return;
-
-      const { data: projects } = await supabase
-        .from("projects")
-        .select("id, workspace_id, name, description, created_at")
-        .eq("workspace_id", membership.workspace_id)
-        .eq("name", activeName)
-        .is("deleted_at", null)
-        .order("created_at", { ascending: false });
-
-      const candidates = projects ?? [];
-      const exactDescription = candidates.find((item) => {
-        const dbDescription = String(item.description ?? "").trim();
-        return dbDescription === description || (!dbDescription && description === "No description yet.");
-      });
-      const match = exactDescription ?? candidates[0];
-      if (!cancelled && match) {
-        setProject({ id: match.id, workspaceId: match.workspace_id, name: match.name });
-        setTab("overview");
-        setSelectedSpaceId("all");
-        setQuery("");
-        setMessage("");
-      }
-    };
-
-    void resolve();
-    return () => { cancelled = true; };
-  }, [workspaceEl]);
-
-  useEffect(() => {
-    if (!workspaceEl) return;
-    workspaceEl.dataset.workspaceTab = tab;
-    workspaceEl.classList.toggle("workspace-v2-focused", tab !== "overview");
-    return () => {
-      delete workspaceEl.dataset.workspaceTab;
-      workspaceEl.classList.remove("workspace-v2-focused");
-    };
-  }, [tab, workspaceEl]);
-
   const loadDocuments = useCallback(async () => {
     if (!project) return;
     const supabase = getSupabaseClient();
     if (!supabase) return;
-    setLoading(true);
+    setFilesLoading(true);
     try {
       const [nextSpaces, nextFiles] = await Promise.all([
         listProjectFileSpaces(supabase, project.id),
@@ -180,23 +121,21 @@ export default function ProjectWorkspaceEnhancer() {
       setSpaces(nextSpaces);
       setFiles(nextFiles);
       setDocsUnavailable(false);
-      if (selectedSpaceId !== "all" && !nextSpaces.some((space) => space.id === selectedSpaceId)) {
-        setSelectedSpaceId("all");
-      }
+      setSelectedSpaceId((current) => current !== "all" && !nextSpaces.some((space) => space.id === current) ? "all" : current);
     } catch (error) {
       const text = error instanceof Error ? error.message : String(error);
       setDocsUnavailable(text.includes("project_file_spaces") || text.includes("project_files") || text.includes("schema cache"));
       setMessage(text);
     } finally {
-      setLoading(false);
+      setFilesLoading(false);
     }
-  }, [project, selectedSpaceId]);
+  }, [project]);
 
   const loadTimeline = useCallback(async () => {
     if (!project) return;
     const supabase = getSupabaseClient();
     if (!supabase) return;
-    setLoading(true);
+    setActivityLoading(true);
     try {
       const [taskResult, nodeResult, fileResult] = await Promise.all([
         supabase.from("tasks").select("id").eq("project_id", project.id),
@@ -270,14 +209,20 @@ export default function ProjectWorkspaceEnhancer() {
         setMessage(text);
       }
     } finally {
-      setLoading(false);
+      setActivityLoading(false);
     }
   }, [project]);
 
   useEffect(() => {
-    if (tab === "documents") void loadDocuments();
-    if (tab === "timeline") void loadTimeline();
-  }, [tab, loadDocuments, loadTimeline]);
+    const handleTabChange = (event: Event) => {
+      const detail = (event as CustomEvent<{ projectId?: string; tab?: string }>).detail;
+      if (!project || detail?.projectId !== project.id) return;
+      if (detail.tab === "files") void loadDocuments();
+      if (detail.tab === "activity") void loadTimeline();
+    };
+    window.addEventListener("tbft:project-workspace-tab", handleTabChange);
+    return () => window.removeEventListener("tbft:project-workspace-tab", handleTabChange);
+  }, [loadDocuments, loadTimeline, project]);
 
   const rootSpace = spaces.find((space) => space.kind === "project");
   const taskSpaces = spaces.filter((space) => space.kind === "task");
@@ -357,29 +302,14 @@ export default function ProjectWorkspaceEnhancer() {
     }
   };
 
-  if (!project || !tabsMount || !contentMount) return null;
-
-  const tabs = (
-    <nav className="project-workspace-tabs" aria-label={`${project.name} workspace`}>
-      {(["overview", "documents", "timeline"] as WorkspaceTab[]).map((item) => (
-        <button
-          key={item}
-          type="button"
-          className={tab === item ? "active" : ""}
-          onClick={() => { setTab(item); setMessage(""); }}
-        >
-          {item === "overview" ? "Overview" : item === "documents" ? "Documents" : "Timeline"}
-        </button>
-      ))}
-    </nav>
-  );
+  if (!project || !filesMount || !activityMount) return null;
 
   const documents = (
     <section className="project-documents-workspace">
       <div className="project-workspace-section-heading">
         <div>
           <span className="eyebrow">PROJECT LIBRARY</span>
-          <h4>Documents</h4>
+          <h4>Files</h4>
           <p>Project files and automatic task folders in one place.</p>
         </div>
         {!docsUnavailable && (
@@ -423,7 +353,7 @@ export default function ProjectWorkspaceEnhancer() {
               <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search files…" />
             </div>
 
-            {loading ? (
+            {filesLoading ? (
               <div className="project-workspace-empty">Loading files…</div>
             ) : filteredFiles.length ? (
               <div className="project-file-list">
@@ -457,18 +387,18 @@ export default function ProjectWorkspaceEnhancer() {
     </section>
   );
 
-  const timelineView = (
+  const activityView = (
     <section className="project-timeline-workspace">
       <div className="project-workspace-section-heading">
         <div>
           <span className="eyebrow">PROJECT MEMORY</span>
-          <h4>Timeline</h4>
+          <h4>Activity</h4>
           <p>A chronological record of tasks, project changes, notes and files.</p>
         </div>
         <button type="button" className="secondary-button compact" onClick={() => void loadTimeline()}>Refresh</button>
       </div>
 
-      {loading ? (
+      {activityLoading ? (
         <div className="project-workspace-empty">Loading project history…</div>
       ) : timeline.length ? (
         <div className="project-timeline-list">
@@ -494,8 +424,8 @@ export default function ProjectWorkspaceEnhancer() {
 
   return (
     <>
-      {createPortal(tabs, tabsMount)}
-      {createPortal(tab === "documents" ? documents : tab === "timeline" ? timelineView : null, contentMount)}
+      {createPortal(documents, filesMount)}
+      {createPortal(activityView, activityMount)}
     </>
   );
 }

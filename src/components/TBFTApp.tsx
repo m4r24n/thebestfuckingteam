@@ -203,7 +203,7 @@ export default function TBFTApp() {
         const activeProjects = loaded.projects.filter((project) => !project.deletedAt);
         setSelectedProjectId((current) => current && activeProjects.some((project) => project.id === current)
           ? current
-          : activeProjects[0]?.id ?? null);
+          : null);
       }
       setSyncState("saved");
     } catch (error) {
@@ -539,8 +539,7 @@ export default function TBFTApp() {
           await safeActivity("project", project.id, "archived", `archived project “${project.name}”.`);
         }, "Project moved to archive");
         if (success) {
-          const nextProject = data.projects.find((item) => !item.deletedAt && item.id !== project.id);
-          setSelectedProjectId(nextProject?.id ?? null);
+          setSelectedProjectId(null);
         }
       },
     });
@@ -591,13 +590,6 @@ export default function TBFTApp() {
       await safeActivity("project_node", inserted.id, "created", `added “${nodeTitle.trim()}” to project “${project.name}”.`);
     }, "Phase added");
     if (success) setPhaseProjectId(null);
-  };
-
-  const updateProjectView = async (projectId: string, view: Project["view"]) => {
-    await mutate(async () => {
-      const { error } = await supabase.from("projects").update({ preferred_view: view }).eq("id", projectId);
-      if (error) throw error;
-    });
   };
 
   const updateSettings = async (patch: Partial<AppSettings>) => {
@@ -673,6 +665,7 @@ export default function TBFTApp() {
               onClick={() => {
                 setSection(item.id);
                 if (item.id === "today") setSelectedDate(boardDate);
+                if (item.id === "projects") setSelectedProjectId(null);
               }}
             >
               <span>{item.icon}</span>
@@ -732,6 +725,7 @@ export default function TBFTApp() {
               onDelete={deleteTask}
               onEdit={(task) => setTaskModal({ task, ownerId: task.ownerId, date: task.originalDate })}
               onThread={setThreadTaskId}
+              onOpenProject={(projectId) => { setSelectedProjectId(projectId); setSection("projects"); }}
             />
           )}
 
@@ -739,14 +733,17 @@ export default function TBFTApp() {
             <ProjectsPage
               data={data}
               selectedProjectId={selectedProjectId}
+              boardDate={boardDate}
+              activeUserId={activeUserId}
               onSelectProject={setSelectedProjectId}
+              onBack={() => setSelectedProjectId(null)}
               onCreateProject={() => setProjectModal({})}
               onAddNode={(project) => setPhaseProjectId(project.id)}
-              onUpdateView={updateProjectView}
               onEditProject={(project) => setProjectModal({ project })}
               onArchiveProject={archiveProject}
               onOpenTask={(task) => setTaskModal({ task, ownerId: task.ownerId, date: task.originalDate })}
               onCreateTask={(projectId, projectNodeId) => setTaskModal({ ownerId: activeUserId, date: boardDate, projectId, projectNodeId })}
+              onCompleteTask={(task) => toggleTaskCompletion(task, task.originalDate)}
             />
           )}
 
@@ -762,6 +759,7 @@ export default function TBFTApp() {
               onDelete={deleteTask}
               onEdit={(task) => setTaskModal({ task, ownerId: task.ownerId, date: task.originalDate })}
               onThread={setThreadTaskId}
+              onOpenProject={(projectId) => { setSelectedProjectId(projectId); setSection("projects"); }}
             />
           )}
 
@@ -1104,6 +1102,7 @@ function TodayPage({
   onDelete,
   onEdit,
   onThread,
+  onOpenProject,
 }: {
   data: AppData;
   date: string;
@@ -1114,6 +1113,7 @@ function TodayPage({
   onDelete: (task: Task) => void;
   onEdit: (task: Task) => void;
   onThread: (taskId: string) => void;
+  onOpenProject: (projectId: string) => void;
 }) {
   const tasks = data.tasks.filter((task) => taskAppearsOnDate(task, date, data, now));
   const completed = tasks.filter((task) => task.completedAt).length;
@@ -1151,6 +1151,7 @@ function TodayPage({
         onDelete={onDelete}
         onEdit={onEdit}
         onThread={onThread}
+        onOpenProject={onOpenProject}
       />
     </>
   );
@@ -1167,6 +1168,7 @@ function TaskBoard({
   onDelete,
   onEdit,
   onThread,
+  onOpenProject,
 }: {
   data: AppData;
   date: string;
@@ -1178,6 +1180,7 @@ function TaskBoard({
   onDelete: (task: Task) => void;
   onEdit: (task: Task) => void;
   onThread: (taskId: string) => void;
+  onOpenProject: (projectId: string) => void;
 }) {
   return (
     <div className="split-board">
@@ -1229,6 +1232,7 @@ function TaskBoard({
                     onDelete={() => onDelete(task)}
                     onEdit={() => onEdit(task)}
                     onThread={() => onThread(task.id)}
+                    onOpenProject={onOpenProject}
                   />
                 ))
               )}
@@ -1250,6 +1254,7 @@ function TaskCard({
   onDelete,
   onEdit,
   onThread,
+  onOpenProject,
 }: {
   task: Task;
   viewingDate: string;
@@ -1260,6 +1265,7 @@ function TaskCard({
   onDelete: () => void;
   onEdit: () => void;
   onThread: () => void;
+  onOpenProject: (projectId: string) => void;
 }) {
   const state = getTaskState(task, viewingDate, data, now);
   const owner = userById(data, task.ownerId);
@@ -1312,7 +1318,7 @@ function TaskCard({
 
       <div className="task-meta">
         {task.deadline && <span>{task.deadline}</span>}
-        {project && <span>{project.name}{node ? ` / ${node.title}` : ""}</span>}
+        {project && <button type="button" className="task-project-link" onClick={() => onOpenProject(project.id)}>{project.name}{node ? ` / ${node.title}` : ""}</button>}
         {task.creatorId !== task.ownerId && <span>Added by {creator.name}</span>}
         {task.completedAt && <span>Completed {formatClock(task.completedAt)}</span>}
       </div>
@@ -1325,78 +1331,193 @@ function TaskCard({
   );
 }
 
+type ProjectWorkspaceTab = "overview" | "tasks" | "files" | "activity";
+type ProjectHealth = "attention" | "on-track" | "planning" | "complete";
+
+type ProjectMetrics = {
+  tasks: Task[];
+  openTasks: Task[];
+  overdueTasks: Task[];
+  completed: number;
+  progress: number;
+  health: ProjectHealth;
+  nextTask?: Task;
+};
+
+function projectMetrics(project: Project, data: AppData, boardDate: string): ProjectMetrics {
+  const tasks = data.tasks.filter((task) => !task.deletedAt && task.projectId === project.id);
+  const openTasks = tasks
+    .filter((task) => !task.completedAt)
+    .sort((a, b) => dateCompare(a.originalDate, b.originalDate)
+      || (a.deadline ?? "99:99").localeCompare(b.deadline ?? "99:99")
+      || ({ high: 0, normal: 1, low: 2 }[a.priority] - { high: 0, normal: 1, low: 2 }[b.priority]));
+  const overdueTasks = openTasks.filter((task) => dateCompare(task.originalDate, boardDate) < 0);
+  const completed = tasks.length - openTasks.length;
+  const progress = tasks.length ? Math.round((completed / tasks.length) * 100) : 0;
+  const missedTarget = Boolean(project.targetDate && dateCompare(project.targetDate, boardDate) < 0 && openTasks.length);
+  const health: ProjectHealth = tasks.length > 0 && completed === tasks.length
+    ? "complete"
+    : overdueTasks.length > 0 || missedTarget
+      ? "attention"
+      : tasks.length === 0
+        ? "planning"
+        : "on-track";
+  return { tasks, openTasks, overdueTasks, completed, progress, health, nextTask: overdueTasks[0] ?? openTasks[0] };
+}
+
+function projectHealthLabel(health: ProjectHealth): string {
+  return {
+    attention: "Needs attention",
+    "on-track": "On track",
+    planning: "Planning",
+    complete: "Complete",
+  }[health];
+}
+
+function projectTaskStatus(task: Task, boardDate: string): string {
+  if (task.completedAt) return "Complete";
+  if (dateCompare(task.originalDate, boardDate) < 0) return "Overdue";
+  if (dateCompare(task.originalDate, boardDate) > 0) return "Scheduled";
+  return "Today";
+}
+
 function ProjectsPage({
   data,
   selectedProjectId,
+  boardDate,
+  activeUserId,
   onSelectProject,
+  onBack,
   onCreateProject,
   onAddNode,
-  onUpdateView,
   onEditProject,
   onArchiveProject,
   onOpenTask,
   onCreateTask,
+  onCompleteTask,
 }: {
   data: AppData;
   selectedProjectId: string | null;
+  boardDate: string;
+  activeUserId: string;
   onSelectProject: (id: string) => void;
+  onBack: () => void;
   onCreateProject: () => void;
   onAddNode: (project: Project) => void;
-  onUpdateView: (projectId: string, view: Project["view"]) => void;
   onEditProject: (project: Project) => void;
   onArchiveProject: (project: Project) => void;
   onOpenTask: (task: Task) => void;
   onCreateTask: (projectId: string, projectNodeId?: string) => void;
+  onCompleteTask: (task: Task) => void;
 }) {
+  const [query, setQuery] = useState("");
+  const [filter, setFilter] = useState<"all" | ProjectHealth>("all");
   const activeProjects = data.projects.filter((item) => !item.deletedAt);
-  const project = activeProjects.find((item) => item.id === selectedProjectId) ?? activeProjects[0];
+  const selectedProject = activeProjects.find((item) => item.id === selectedProjectId);
+
+  if (selectedProject) {
+    return (
+      <ProjectWorkspace
+        key={selectedProject.id}
+        data={data}
+        project={selectedProject}
+        boardDate={boardDate}
+        activeUserId={activeUserId}
+        onBack={onBack}
+        onAddNode={() => onAddNode(selectedProject)}
+        onEdit={() => onEditProject(selectedProject)}
+        onArchive={() => onArchiveProject(selectedProject)}
+        onOpenTask={onOpenTask}
+        onCreateTask={(nodeId) => onCreateTask(selectedProject.id, nodeId)}
+        onCompleteTask={onCompleteTask}
+      />
+    );
+  }
+
+  const summaries = activeProjects.map((project) => ({ project, metrics: projectMetrics(project, data, boardDate) }));
+  const activeProjectIds = new Set(activeProjects.map((project) => project.id));
+  const dueThisWeek = data.tasks.filter((task) => !task.deletedAt
+    && !task.completedAt
+    && task.projectId && activeProjectIds.has(task.projectId)
+    && dateCompare(task.originalDate, boardDate) >= 0
+    && dateCompare(task.originalDate, addDays(boardDate, 6)) <= 0).length;
+  const visibleProjects = summaries
+    .filter(({ project, metrics }) => {
+      const matchesQuery = !query.trim()
+        || project.name.toLowerCase().includes(query.trim().toLowerCase())
+        || project.description.toLowerCase().includes(query.trim().toLowerCase());
+      return matchesQuery && (filter === "all" || metrics.health === filter);
+    })
+    .sort((a, b) => Number(b.metrics.health === "attention") - Number(a.metrics.health === "attention")
+      || Number(a.metrics.health === "complete") - Number(b.metrics.health === "complete")
+      || (a.project.targetDate ?? "9999-12-31").localeCompare(b.project.targetDate ?? "9999-12-31")
+      || a.project.name.localeCompare(b.project.name));
 
   return (
     <>
       <PageHeading
-        eyebrow="THE CONNECTING DOTS"
+        eyebrow="PROJECT PORTFOLIO"
         title="Projects"
-        description="Break bigger goals into phases, attach daily tasks, and switch how the whole project is visualized."
+        description="Plan the bigger work here. Today remains where you execute it."
         action={<button className="primary-button" onClick={onCreateProject}>+ New project</button>}
       />
 
-      <div className="project-layout">
-        <aside className="project-list-panel">
-          {activeProjects.map((item) => {
-            const tasks = data.tasks.filter((task) => !task.deletedAt && task.projectId === item.id);
-            const complete = tasks.filter((task) => task.completedAt).length;
-            const progress = tasks.length ? Math.round((complete / tasks.length) * 100) : 0;
-            return (
-              <button
-                key={item.id}
-                className={project?.id === item.id ? "project-list-item active" : "project-list-item"}
-                onClick={() => onSelectProject(item.id)}
-              >
-                <span>◇</span>
-                <div>
-                  <strong>{item.name}</strong>
-                  <small>{progress}% complete · {tasks.length} tasks</small>
-                </div>
-              </button>
-            );
-          })}
-        </aside>
+      <section className="project-portfolio">
+        <div className="project-summary-grid">
+          <div><span>ACTIVE PROJECTS</span><strong>{summaries.filter(({ metrics }) => metrics.health !== "complete").length}</strong></div>
+          <div><span>NEEDS ATTENTION</span><strong>{summaries.filter(({ metrics }) => metrics.health === "attention").length}</strong></div>
+          <div><span>DUE THIS WEEK</span><strong>{dueThisWeek}</strong></div>
+        </div>
 
-        {project ? (
-          <ProjectWorkspace
-            data={data}
-            project={project}
-            onAddNode={() => onAddNode(project)}
-            onUpdateView={(view) => onUpdateView(project.id, view)}
-            onEdit={() => onEditProject(project)}
-            onArchive={() => onArchiveProject(project)}
-            onOpenTask={onOpenTask}
-            onCreateTask={(nodeId) => onCreateTask(project.id, nodeId)}
-          />
-        ) : (
-          <div className="blank-panel">Create your first project to begin.</div>
-        )}
-      </div>
+        <div className="project-portfolio-toolbar">
+          <label>
+            <span className="sr-only">Search projects</span>
+            <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search projects…" />
+          </label>
+          <label>
+            <span className="sr-only">Filter projects</span>
+            <select value={filter} onChange={(event) => setFilter(event.target.value as "all" | ProjectHealth)}>
+              <option value="all">All projects</option>
+              <option value="attention">Needs attention</option>
+              <option value="on-track">On track</option>
+              <option value="planning">Planning</option>
+              <option value="complete">Complete</option>
+            </select>
+          </label>
+        </div>
+
+        <div className="project-portfolio-list">
+          <div className="project-portfolio-columns" aria-hidden="true">
+            <span>Project</span><span>Next action</span><span>Progress</span><span>Target</span><span>Status</span>
+          </div>
+          {visibleProjects.map(({ project, metrics }) => (
+            <button key={project.id} type="button" className="project-portfolio-row" onClick={() => onSelectProject(project.id)}>
+              <span className="project-portfolio-name">
+                <strong>{project.name}</strong>
+                <small>{project.description || `${metrics.tasks.length} connected task${metrics.tasks.length === 1 ? "" : "s"}`}</small>
+              </span>
+              <span className="project-next-action">
+                <small>NEXT ACTION</small>
+                <strong>{metrics.nextTask?.title ?? (metrics.health === "complete" ? "Project complete" : "Add the first task")}</strong>
+              </span>
+              <span className="project-row-progress">
+                <strong>{metrics.progress}%</strong>
+                <i><b style={{ width: `${metrics.progress}%` }} /></i>
+                <small>{metrics.completed}/{metrics.tasks.length} done</small>
+              </span>
+              <span className="project-row-target">{project.targetDate ? formatShortDate(project.targetDate) : "No target"}</span>
+              <span className={`project-health ${metrics.health}`}>{projectHealthLabel(metrics.health)}</span>
+            </button>
+          ))}
+          {!visibleProjects.length && (
+            <div className="project-portfolio-empty">
+              <strong>{activeProjects.length ? "No projects match this view." : "No projects yet."}</strong>
+              <span>{activeProjects.length ? "Clear the search or choose another filter." : "Create a project to connect phases, tasks and files."}</span>
+              {!activeProjects.length && <button className="primary-button compact" onClick={onCreateProject}>Create first project</button>}
+            </div>
+          )}
+        </div>
+      </section>
     </>
   );
 }
@@ -1404,140 +1525,207 @@ function ProjectsPage({
 function ProjectWorkspace({
   data,
   project,
+  boardDate,
+  activeUserId,
+  onBack,
   onAddNode,
-  onUpdateView,
   onEdit,
   onArchive,
   onOpenTask,
   onCreateTask,
+  onCompleteTask,
 }: {
   data: AppData;
   project: Project;
+  boardDate: string;
+  activeUserId: string;
+  onBack: () => void;
   onAddNode: () => void;
-  onUpdateView: (view: Project["view"]) => void;
   onEdit: () => void;
   onArchive: () => void;
   onOpenTask: (task: Task) => void;
   onCreateTask: (nodeId?: string) => void;
+  onCompleteTask: (task: Task) => void;
 }) {
-  const tasks = data.tasks.filter((task) => !task.deletedAt && task.projectId === project.id);
-  const completed = tasks.filter((task) => task.completedAt).length;
-  const progress = tasks.length ? Math.round((completed / tasks.length) * 100) : 0;
+  const [tab, setTab] = useState<ProjectWorkspaceTab>("overview");
+  const metrics = projectMetrics(project, data, boardDate);
+  const unassignedTasks = metrics.tasks.filter((task) => !task.projectNodeId);
+  const attentionTasks = metrics.overdueTasks.length
+    ? metrics.overdueTasks.slice(0, 4)
+    : metrics.openTasks.filter((task) => task.priority === "high").slice(0, 4);
+
+  const taskRows = (tasks: Task[]) => tasks
+    .slice()
+    .sort((a, b) => Number(Boolean(a.completedAt)) - Number(Boolean(b.completedAt))
+      || dateCompare(a.originalDate, b.originalDate)
+      || (a.deadline ?? "99:99").localeCompare(b.deadline ?? "99:99"))
+    .map((task) => {
+      const owner = userById(data, task.ownerId);
+      const status = projectTaskStatus(task, boardDate);
+      const canComplete = task.ownerId === activeUserId
+        && (Boolean(task.completedAt) || dateCompare(task.originalDate, boardDate) <= 0);
+      return (
+        <div className={`project-task-row state-${status.toLowerCase()}`} key={task.id}>
+          <button
+            type="button"
+            className="project-task-check"
+            onClick={() => onCompleteTask(task)}
+            disabled={!canComplete}
+            aria-label={task.completedAt ? `Mark ${task.title} incomplete` : `Mark ${task.title} complete`}
+            title={!canComplete && task.ownerId !== activeUserId ? `Only ${owner.name} can change completion` : undefined}
+          >
+            {task.completedAt ? "✓" : ""}
+          </button>
+          <button type="button" className="project-task-title" onClick={() => onOpenTask(task)}>
+            <strong>{task.title}</strong>
+            {task.description && <small>{task.description}</small>}
+          </button>
+          <span className="project-task-owner"><i style={{ "--accent": owner.accent } as React.CSSProperties}>{owner.initials}</i>{owner.name}</span>
+          <span className="project-task-date">{formatShortDate(task.originalDate)}{task.deadline ? ` · ${task.deadline}` : ""}</span>
+          <span className={`project-task-status ${status.toLowerCase()}`}>{status}</span>
+        </div>
+      );
+    });
+
+  const phaseBlock = (id: string, title: string, tasks: Task[], index?: number) => {
+    const completed = tasks.filter((task) => task.completedAt).length;
+    const progress = tasks.length ? Math.round((completed / tasks.length) * 100) : 0;
+    return (
+      <section className="project-phase-block" key={id}>
+        <div className="project-phase-heading">
+          <div>
+            {index !== undefined && <span>{String(index + 1).padStart(2, "0")}</span>}
+            <strong>{title}</strong>
+          </div>
+          <div><span>{completed}/{tasks.length} complete</span><strong>{progress}%</strong></div>
+        </div>
+        <div className="project-phase-progress"><i style={{ width: `${progress}%` }} /></div>
+        <div className="project-task-list">
+          {tasks.length ? taskRows(tasks) : <div className="project-phase-empty">No tasks in this phase yet.</div>}
+        </div>
+        <button type="button" className="project-phase-add" onClick={() => onCreateTask(id === "unassigned" ? undefined : id)}>+ Add task here</button>
+      </section>
+    );
+  };
 
   return (
-    <section className="project-workspace">
-      <div className="project-hero">
-        <div className="project-identity">
-          <span className="eyebrow">JOINT PROJECT</span>
-          <h3>{project.name}</h3>
-          <p>{project.description || "No description yet."}</p>
-          {project.targetDate && <span className="project-target">Target · {formatShortDate(project.targetDate)}</span>}
-        </div>
-        <div className="project-hero-side">
-          <div className="project-score">
-            <strong>{progress}%</strong>
-            <span>{completed} of {tasks.length} tasks completed</span>
-          </div>
-          <details className="project-actions-menu">
-            <summary aria-label="Project actions" title="Project actions">•••</summary>
-            <div>
-              <button type="button" onClick={onEdit}>Edit project</button>
-              <button type="button" className="archive-action" onClick={onArchive}>Move to archive</button>
+    <>
+      <button type="button" className="project-workspace-back" onClick={onBack}>← All projects</button>
+      <section
+        className="project-workspace project-workspace-redesign"
+        data-project-id={project.id}
+        data-workspace-id={data.workspaceId}
+        data-project-name={project.name}
+        data-project-tab={tab}
+      >
+        <div className="project-hero">
+          <div className="project-identity">
+            <span className="eyebrow">{project.ownerId === "joint" ? "JOINT PROJECT" : "PROJECT"}</span>
+            <h3>{project.name}</h3>
+            <p>{project.description || "No description yet."}</p>
+            <div className="project-hero-meta">
+              <span className={`project-health ${metrics.health}`}>{projectHealthLabel(metrics.health)}</span>
+              <span>{project.targetDate ? `Target · ${formatShortDate(project.targetDate)}` : "No target date"}</span>
+              <span>{metrics.openTasks.length} open task{metrics.openTasks.length === 1 ? "" : "s"}</span>
             </div>
-          </details>
-        </div>
-      </div>
-      <div className="large-progress"><i style={{ width: `${progress}%` }} /></div>
-
-      <div className="project-toolbar">
-        <div className="view-tabs">
-          <button className={project.view === "flow" ? "active" : ""} onClick={() => onUpdateView("flow")}>Flowchart</button>
-          <button className={project.view === "folders" ? "active" : ""} onClick={() => onUpdateView("folders")}>Windows 98</button>
-          <button className={project.view === "terminal" ? "active" : ""} onClick={() => onUpdateView("terminal")}>Neon terminal</button>
-        </div>
-        <button className="secondary-button compact" onClick={onAddNode}>+ Add phase</button>
-      </div>
-
-      {project.view === "flow" && (
-        <div className="flow-view">
-          {project.nodes.length === 0 ? <ProjectEmpty onAdd={onAddNode} /> : project.nodes.map((node, index) => {
-            const nodeTasks = tasks.filter((task) => task.projectNodeId === node.id);
-            const nodeComplete = nodeTasks.filter((task) => task.completedAt).length;
-            const nodeProgress = nodeTasks.length ? Math.round((nodeComplete / nodeTasks.length) * 100) : 0;
-            return (
-              <div className="flow-row" key={node.id}>
-                <div className="flow-number">{String(index + 1).padStart(2, "0")}</div>
-                <div className="flow-connector" />
-                <div className="flow-node">
-                  <div>
-                    <span>PROJECT PHASE</span>
-                    <h4>{node.title}</h4>
-                  </div>
-                  <strong>{nodeProgress}%</strong>
-                  <div className="node-tasks">
-                    {nodeTasks.length ? nodeTasks.map((task) => (
-                      <button key={task.id} onClick={() => onOpenTask(task)} className={task.completedAt ? "done" : ""}>
-                        {task.completedAt ? "✓" : "○"} {task.title}
-                      </button>
-                    )) : <em>No connected tasks yet</em>}
-                    <button className="node-add-task" onClick={() => onCreateTask(node.id)}>+ Add task here</button>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {project.view === "folders" && (
-        <div className="win98-window">
-          <div className="win98-titlebar"><strong>Exploring - {project.name}</strong><span>_ □ ×</span></div>
-          <div className="win98-menu">File&nbsp;&nbsp; Edit&nbsp;&nbsp; View&nbsp;&nbsp; Help</div>
-          <div className="win98-address">Address: C:\TEAM\{project.name.toUpperCase().replaceAll(" ", "_")}</div>
-          <div className="folder-grid">
-            {project.nodes.map((node) => {
-              const nodeTasks = tasks.filter((task) => task.projectNodeId === node.id);
-              return (
-                <div className="folder-group" key={node.id}>
-                  <div className="folder-icon">📁</div>
-                  <strong>{node.title}</strong>
-                  {nodeTasks.map((task) => (
-                    <button key={task.id} onClick={() => onOpenTask(task)}>{task.completedAt ? "☑" : "📄"} {task.title}</button>
-                  ))}
-                  <button onClick={() => onCreateTask(node.id)}>➕ Add task</button>
-                </div>
-              );
-            })}
-            {!project.nodes.length && <ProjectEmpty onAdd={onAddNode} />}
           </div>
-          <div className="win98-status">{project.nodes.length} object(s) · {progress}% complete</div>
+          <div className="project-hero-side">
+            <div className="project-score">
+              <strong>{metrics.progress}%</strong>
+              <span>{metrics.completed} of {metrics.tasks.length} tasks completed</span>
+            </div>
+            <button type="button" className="secondary-button compact" onClick={onEdit}>Edit</button>
+            <button type="button" className="primary-button compact" onClick={() => onCreateTask()}>+ Add task</button>
+            <details className="project-actions-menu">
+              <summary aria-label="More project actions" title="More project actions">•••</summary>
+              <div><button type="button" className="archive-action" onClick={onArchive}>Move to archive</button></div>
+            </details>
+          </div>
         </div>
-      )}
+        <div className="project-overall-progress"><i style={{ width: `${metrics.progress}%` }} /></div>
 
-      {project.view === "terminal" && (
-        <div className="terminal-view">
-          <div className="terminal-top"><span>● ● ●</span><strong>tbft-project-browser</strong></div>
-          <p className="terminal-path">TBFT://{project.name.toUpperCase().replaceAll(" ", "-")}</p>
-          <p>[{Array(Math.round(progress / 5)).fill("█").join("")}{Array(20 - Math.round(progress / 5)).fill("░").join("")}] {progress}%</p>
-          {project.nodes.map((node) => {
-            const nodeTasks = tasks.filter((task) => task.projectNodeId === node.id);
-            return (
-              <div className="terminal-section" key={node.id}>
-                <strong>&gt; {node.title.toLowerCase().replaceAll(" ", "_")}</strong>
-                {nodeTasks.length ? nodeTasks.map((task) => (
-                  <button key={task.id} onClick={() => onOpenTask(task)}>
-                    &nbsp;&nbsp;[{task.completedAt ? "x" : " "}] {task.title}
-                  </button>
-                )) : <span>&nbsp;&nbsp;[ ] no_tasks_connected</span>}
-                <button onClick={() => onCreateTask(node.id)}>&nbsp;&nbsp;+ create_task</button>
+        <nav className="project-workspace-tabs" aria-label={`${project.name} workspace`}>
+          {(["overview", "tasks", "files", "activity"] as ProjectWorkspaceTab[]).map((item) => (
+            <button
+              key={item}
+              type="button"
+              className={tab === item ? "active" : ""}
+              aria-current={tab === item ? "page" : undefined}
+              onClick={() => {
+                setTab(item);
+                window.dispatchEvent(new CustomEvent("tbft:project-workspace-tab", {
+                  detail: { projectId: project.id, tab: item },
+                }));
+              }}
+            >
+              {item[0].toUpperCase() + item.slice(1)}
+            </button>
+          ))}
+        </nav>
+
+        <div className="project-tab-panel" hidden={tab !== "overview"}>
+          <div className="project-overview-grid">
+            <section className="project-overview-section">
+              <div className="project-section-heading">
+                <div><span className="eyebrow">MOVE FORWARD</span><h4>Next actions</h4></div>
+                <button type="button" onClick={() => setTab("tasks")}>View all tasks</button>
               </div>
-            );
-          })}
-          {!project.nodes.length && <button className="terminal-add" onClick={onAddNode}>&gt; create_first_phase --now</button>}
-          <span className="terminal-cursor">_</span>
+              {metrics.openTasks.length ? metrics.openTasks.slice(0, 4).map((task) => (
+                <button type="button" className="project-next-row" key={task.id} onClick={() => onOpenTask(task)}>
+                  <span><strong>{task.title}</strong><small>{project.nodes.find((node) => node.id === task.projectNodeId)?.title ?? "No phase"} · {userById(data, task.ownerId).name}</small></span>
+                  <span>{projectTaskStatus(task, boardDate) === "Overdue" ? "Overdue" : formatShortDate(task.originalDate)} →</span>
+                </button>
+              )) : <div className="project-section-empty"><strong>No open tasks.</strong><span>{metrics.tasks.length ? "Everything connected to this project is complete." : "Add a task to define the next action."}</span></div>}
+            </section>
+
+            <section className="project-overview-section">
+              <div className="project-section-heading"><div><span className="eyebrow">WATCH LIST</span><h4>Needs attention</h4></div></div>
+              {attentionTasks.length ? attentionTasks.map((task) => (
+                <button type="button" className="project-attention-row" key={task.id} onClick={() => onOpenTask(task)}>
+                  <span><strong>{task.title}</strong><small>{userById(data, task.ownerId).name} · {formatShortDate(task.originalDate)}</small></span>
+                  <span>{metrics.overdueTasks.includes(task) ? "Overdue" : "High priority"}</span>
+                </button>
+              )) : <div className="project-section-empty"><strong>Nothing is blocked.</strong><span>No overdue or high-priority tasks need attention.</span></div>}
+            </section>
+          </div>
+
+          <section className="project-overview-section project-phase-summary">
+            <div className="project-section-heading">
+              <div><span className="eyebrow">PROJECT STRUCTURE</span><h4>Progress by phase</h4></div>
+              <button type="button" onClick={onAddNode}>+ Add phase</button>
+            </div>
+            {project.nodes.length ? project.nodes.map((node, index) => {
+              const nodeTasks = metrics.tasks.filter((task) => task.projectNodeId === node.id);
+              const nodeCompleted = nodeTasks.filter((task) => task.completedAt).length;
+              const nodeProgress = nodeTasks.length ? Math.round((nodeCompleted / nodeTasks.length) * 100) : 0;
+              return (
+                <button type="button" className="project-phase-summary-row" key={node.id} onClick={() => setTab("tasks")}>
+                  <span>{String(index + 1).padStart(2, "0")}</span>
+                  <strong>{node.title}</strong>
+                  <i><b style={{ width: `${nodeProgress}%` }} /></i>
+                  <small>{nodeCompleted}/{nodeTasks.length} · {nodeProgress}%</small>
+                </button>
+              );
+            }) : <ProjectEmpty onAdd={onAddNode} />}
+          </section>
         </div>
-      )}
-    </section>
+
+        <div className="project-tab-panel" hidden={tab !== "tasks"}>
+          <div className="project-tasks-toolbar">
+            <div><span className="eyebrow">PROJECT PLAN</span><h4>Tasks by phase</h4><p>Plan the project here; scheduled work still appears on Today.</p></div>
+            <div><button type="button" className="secondary-button compact" onClick={onAddNode}>+ Add phase</button><button type="button" className="primary-button compact" onClick={() => onCreateTask()}>+ Add task</button></div>
+          </div>
+          <div className="project-phase-list">
+            {project.nodes.map((node, index) => phaseBlock(node.id, node.title, metrics.tasks.filter((task) => task.projectNodeId === node.id), index))}
+            {unassignedTasks.length > 0 && phaseBlock("unassigned", "No phase", unassignedTasks)}
+            {!project.nodes.length && !unassignedTasks.length && <ProjectEmpty onAdd={onAddNode} />}
+          </div>
+        </div>
+
+        <div className="project-tab-panel" hidden={tab !== "files"}><div className="project-files-mount" /></div>
+        <div className="project-tab-panel" hidden={tab !== "activity"}><div className="project-activity-mount" /></div>
+      </section>
+    </>
   );
 }
 
@@ -1545,7 +1733,7 @@ function ProjectEmpty({ onAdd }: { onAdd: () => void }) {
   return (
     <div className="project-empty">
       <strong>No project phases yet</strong>
-      <span>Create the first connecting point in this project.</span>
+      <span>Add a phase to turn this project into a clear plan.</span>
       <button className="secondary-button compact" onClick={onAdd}>Add first phase</button>
     </div>
   );
@@ -1562,6 +1750,7 @@ function CalendarPage({
   onDelete,
   onEdit,
   onThread,
+  onOpenProject,
 }: {
   data: AppData;
   now: Date;
@@ -1573,6 +1762,7 @@ function CalendarPage({
   onDelete: (task: Task) => void;
   onEdit: (task: Task) => void;
   onThread: (taskId: string) => void;
+  onOpenProject: (projectId: string) => void;
 }) {
   const [year, month] = selectedDate.split("-").map(Number);
   const boardDate = getBoardDate(data.settings.timezone, data.settings.rolloverHour, now);
@@ -1642,6 +1832,7 @@ function CalendarPage({
         onDelete={onDelete}
         onEdit={onEdit}
         onThread={onThread}
+        onOpenProject={onOpenProject}
       />
     </>
   );

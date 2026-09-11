@@ -17,6 +17,7 @@ import "./today-accent.css";
 import "./today-reminders.css";
 import "./sidebar-collapse.css";
 import "./calendar-sync.css";
+import "./projects-redesign.css";
 
 export const metadata: Metadata = {
   title: "The Best Fucking Team",
